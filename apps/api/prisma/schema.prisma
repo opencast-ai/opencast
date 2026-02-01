@@ -65,6 +65,10 @@ model Market {
   status  MarketStatus  @default(OPEN)
   outcome MarketOutcome @default(UNRESOLVED)
 
+  // External reference for synced markets (e.g., Polymarket)
+  externalId  String?       @unique
+  category    String?
+
   pool      MarketPool?
   positions Position[]
   trades    Trade[]
