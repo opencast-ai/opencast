@@ -6,26 +6,10 @@ import { Link } from "../router";
 import { useSession } from "../state/session";
 
 import { Icon } from "../components/Icon";
+import { MarketChart } from "../components/MarketChart";
 import { StatusPill } from "../components/StatusPill";
 import { TerminalHeader } from "../components/TerminalHeader";
 import { TradeTicket } from "../components/TradeTicket";
-
-function chartPath(seed: string): string {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  const pts: Array<[number, number]> = [];
-  for (let i = 0; i < 9; i++) {
-    h = (h + 0x9e3779b9) | 0;
-    const r = (h >>> 0) / 0xffffffff;
-    const x = (i / 8) * 800;
-    const y = 320 - r * 260;
-    pts.push([x, y]);
-  }
-  return pts.map((p, idx) => `${idx === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-}
 
 export function MarketTradingPage(props: { marketId: string }) {
   const session = useSession();
@@ -85,47 +69,7 @@ export function MarketTradingPage(props: { marketId: string }) {
               </header>
 
               {/* Chart */}
-              <div className="bg-black rounded-sm border border-border-dark p-1 relative overflow-hidden group shadow-2xl shadow-black">
-                <div className="absolute top-0 left-0 w-full h-full bg-[size:20px_20px] bg-grid-pattern opacity-10 pointer-events-none" />
-                <div className="flex justify-between items-center px-4 py-3 border-b border-white/5 bg-surface-dark/50">
-                  <div className="flex gap-px bg-border-dark/50 p-0.5 rounded-sm">
-                    <button className="px-3 py-1 rounded-sm bg-primary/20 text-[10px] font-mono font-bold text-primary border border-primary/30 uppercase">
-                      1d
-                    </button>
-                    <button className="px-3 py-1 rounded-sm bg-transparent text-[10px] font-mono font-medium hover:bg-white/5 text-slate-400 hover:text-white transition uppercase">
-                      1w
-                    </button>
-                    <button className="px-3 py-1 rounded-sm bg-transparent text-[10px] font-mono font-medium hover:bg-white/5 text-slate-400 hover:text-white transition uppercase">
-                      all
-                    </button>
-                  </div>
-                  <div className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">Probability (placeholder)</div>
-                </div>
-
-                <div className="h-[360px] w-full bg-black relative">
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none" height="100%" width="100%">
-                    <defs>
-                      <linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#ff3333" stopOpacity="0.15" />
-                        <stop offset="100%" stopColor="#ff3333" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <line stroke="#262626" strokeDasharray="2 2" strokeWidth="1" x1="0" x2="100%" y1="25%" y2="25%" />
-                    <line stroke="#262626" strokeDasharray="2 2" strokeWidth="1" x1="0" x2="100%" y1="50%" y2="50%" />
-                    <line stroke="#262626" strokeDasharray="2 2" strokeWidth="1" x1="0" x2="100%" y1="75%" y2="75%" />
-                    <path d={chartPath(market.id)} fill="none" stroke="#ff3333" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                    <path
-                      d={`${chartPath(market.id)} V360 H0 Z`}
-                      fill="url(#chartFill)"
-                      opacity="0.95"
-                    />
-                  </svg>
-
-                  <div className="absolute bottom-3 left-3 text-[10px] font-mono text-slate-600">
-                    M0: chart is placeholder until price-history endpoint exists.
-                  </div>
-                </div>
-              </div>
+              <MarketChart marketId={market.id} />
 
               {/* Panels */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 
 import { registerAgentRoutes } from "./routes/agents.js";
 import { registerAdminRoutes } from "./routes/admin.js";
+import { registerChartRoutes } from "./routes/chart.js";
 import { registerLeaderboardRoutes } from "./routes/leaderboard.js";
 import { registerMarketRoutes } from "./routes/markets.js";
 import { registerPortfolioRoutes } from "./routes/portfolio.js";
@@ -48,6 +49,7 @@ export function buildServer() {
 
   registerAgentRoutes(app);
   registerMarketRoutes(app);
+  registerChartRoutes(app);
   registerQuoteRoutes(app);
   registerTradeRoutes(app);
   registerPortfolioRoutes(app);
