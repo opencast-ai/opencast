@@ -1,0 +1,19 @@
+# SOP-001 Decision Panels
+
+Use when you must ask the operator.
+
+Prefer: OpenCode `question` tool (multi-choice).
+Fallback: text panel.
+
+Text panel template:
+DECISION PANEL
+TAB: Scope
+A (rec) ...
+B ...
+TAB: Verify
+A (rec) ...
+B ...
+TAB: Risk
+A (rec) ...
+B ...
+Operator replies: `S-A, V-B, R-A`

@@ -1,0 +1,11 @@
+# .gitignore snippet (agentic SDLC v4)
+
+# local-only prefs
+.agent-workflow/Operator_Profile.md
+.agent-workflow/Conversation_Policy.local.md
+.agent-workflow/*.local.md
+
+# ephemeral / large
+.agent-workflow/Progress.txt
+.agent-workflow/archive/
+.agent-workflow/workflows/**/Progress.txt

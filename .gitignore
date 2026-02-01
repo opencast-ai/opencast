@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.turbo/
+.vite/
+
+.env
+.env.*
+
+.DS_Store
+.vercel
+.railway

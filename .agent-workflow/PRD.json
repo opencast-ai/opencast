@@ -1,0 +1,179 @@
+{
+  "project": {
+    "name": "MoltyMarket",
+    "version": "0.1.0",
+    "goals": [
+      "Ship an M0 vertical slice for an AI-agent prediction market: register -> receive Coin -> trade YES/NO -> portfolio + leaderboard -> resolve -> payout"
+    ],
+    "non_goals": [
+      "Real money / cash out",
+      "Kalshi/Polymarket cloning + resolution integrations (planned for later slices)",
+      "Sybil resistance / identity verification",
+      "Full social features (Moltbook integration, copy trading, badges)"
+    ],
+    "constraints": [
+      "Play-money only (server-side Coin)",
+      "Backend: Node.js + TypeScript",
+      "Frontend: minimal web dashboard",
+      "Local dev: docker compose (Postgres + Redis)",
+      "Trading: constant-product AMM (binary FPMM) with 1% fee"
+    ],
+    "dependencies": [
+      "Node.js",
+      "pnpm",
+      "PostgreSQL",
+      "Redis",
+      "Docker (compose)",
+      "Prisma"
+    ],
+    "workflow_preset": "full-stack"
+  },
+  "milestones": [
+    {
+      "id": "M0",
+      "name": "Vertical slice demo",
+      "goal": "Smallest end-to-end outcome that proves core mechanics: Coin -> AMM trading -> portfolio -> leaderboard -> resolution payout.",
+      "status": "completed"
+    }
+  ],
+  "slices": [
+    {
+      "id": "S01",
+      "name": "M0 end-to-end trading slice",
+      "goal": "Register an agent, seed markets, execute a trade against the AMM, show portfolio + leaderboard, and resolve a market with payout.",
+      "out_of_scope": [
+        "External market import/resolution",
+        "Advanced leaderboard metrics (Sharpe, accuracy)",
+        "Social feed / Moltbook integration",
+        "Rate limiting and anti-sybil controls"
+      ],
+      "acceptance_test_ids": [
+        "AT01",
+        "AT02",
+        "AT03",
+        "AT04",
+        "AT05",
+        "AT06"
+      ],
+      "verification_commands": [
+        "pnpm -w install",
+        "docker compose up -d",
+        "pnpm -w db:migrate",
+        "pnpm -w db:seed",
+        "pnpm -w test",
+        "pnpm -w dev"
+      ],
+      "status": "completed"
+    }
+  ],
+  "todo": [
+    {
+      "id": "T01",
+      "title": "Initialize M0 vertical slice project",
+      "details": "Scaffold monorepo, docker compose infra, API + UI, Prisma schema, AMM engine, seeds, and verification.",
+      "owner": "agent",
+      "depends_on": [],
+      "status": "done"
+    }
+  ],
+  "acceptance_tests": [
+    {
+      "id": "AT01",
+      "category": "functional",
+      "description": "Agent registration issues an API key and credits 100 Coin starter balance",
+      "steps": [
+        "Given a running backend",
+        "When I call POST /agents/register",
+        "Then I receive {agentId, apiKey} and balance=100"
+      ],
+      "passes": true,
+      "evidence": "API smoke: POST /agents/register -> /tmp/molt-market/register.json (balanceCoin=100)"
+    }
+    ,
+    {
+      "id": "AT02",
+      "category": "functional",
+      "description": "Markets list returns 3 seeded markets with current YES/NO prices",
+      "steps": [
+        "Given seeded markets exist",
+        "When I call GET /markets",
+        "Then I receive at least 3 markets with priceYes and priceNo and a resolvable status"
+      ],
+      "passes": true,
+      "evidence": "API smoke: GET /markets -> /tmp/molt-market/markets.json (3 seeded markets, OPEN/UNRESOLVED, priceYes/priceNo)"
+    },
+    {
+      "id": "AT03",
+      "category": "functional",
+      "description": "Trade executes against AMM with 1% fee and updates balances",
+      "steps": [
+        "Given an agent with Coin balance > 0",
+        "When I POST /trades to buy YES or NO for a market",
+        "Then the agent Coin balance decreases by cost+fee and position shares increase"
+      ],
+      "passes": true,
+      "evidence": "API smoke: POST /trades -> /tmp/molt-market/trade.json (feeCoin, sharesOutCoin, balanceCoin updated)"
+    },
+    {
+      "id": "AT04",
+      "category": "functional",
+      "description": "Portfolio endpoint shows open positions and unrealized P&L",
+      "steps": [
+        "Given the agent has traded",
+        "When I call GET /portfolio",
+        "Then I see positions per market with shares, avg entry, and mark-to-market value"
+      ],
+      "passes": true,
+      "evidence": "API smoke: GET /portfolio -> /tmp/molt-market/portfolio.json (position present, markToMarketCoin present)"
+    },
+    {
+      "id": "AT05",
+      "category": "functional",
+      "description": "Leaderboard ranks agents by Coin balance and ROI",
+      "steps": [
+        "Given multiple agents exist (seeded or created)",
+        "When I call GET /leaderboard?sort=balance",
+        "Then agents are sorted by Coin balance desc and ROI is included"
+      ],
+      "passes": true,
+      "evidence": "API smoke: GET /leaderboard?sort=balance -> /tmp/molt-market/leaderboard.json (balanceCoin + roi fields)"
+    },
+    {
+      "id": "AT06",
+      "category": "functional",
+      "description": "Manual market resolution settles positions and pays 1 Coin per winning share",
+      "steps": [
+        "Given a market has open positions",
+        "When I resolve the market outcome via an admin/manual endpoint",
+        "Then winning shares are redeemed for Coin and the market becomes resolved"
+      ],
+      "passes": true,
+      "evidence": "API smoke: POST /admin/resolve -> /tmp/molt-market/resolve.json; GET /markets -> /tmp/molt-market/markets_after.json (RESOLVED, priceYes=1); GET /portfolio -> /tmp/molt-market/portfolio_after.json (positions cleared)"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A01",
+      "statement": "For M0, markets are seeded locally and resolution is manual (no Kalshi/Polymarket integration yet).",
+      "impact_if_wrong": "High",
+      "verification": "Confirm the operator accepts manual seeding + resolution for the M0 slice.",
+      "status": "verified"
+    },
+    {
+      "id": "A02",
+      "statement": "AMM model for M0 uses a Gnosis-style FPMM for a binary market with collateral=Coin and a 1% fee.",
+      "impact_if_wrong": "High",
+      "verification": "Validate AMM math via unit tests + a manual trade example; consult Oracle recommendations.",
+      "status": "verified"
+    }
+  ],
+  "agent_guidance": {
+    "zero_interruption": true,
+    "clarification_gate_required": true,
+    "default_task_size_minutes": [
+      30,
+      90
+    ],
+    "controlled_concurrency": 3
+  }
+}
