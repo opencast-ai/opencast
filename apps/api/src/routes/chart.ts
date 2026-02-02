@@ -40,10 +40,10 @@ async function fetchPolymarketHistory(
     const data = await response.json() as { history?: Array<{ t: number; p: number }> };
     
     // Transform Polymarket format: { history: [{ t: timestamp, p: price }] }
-    // Price is in cents (e.g., 1800.75 = $0.18)
+    // `p` is already a probability in [0,1].
     return (data.history || []).map((point) => ({
       timestamp: point.t,
-      priceYes: point.p / 10000, // Convert cents to 0-1 probability
+      priceYes: point.p,
       volume: 0 // Polymarket doesn't provide volume in this endpoint
     }));
   } catch (err) {
@@ -154,48 +154,76 @@ async function getChartData(
   const endTime = now;
   let startTime: Date;
   let bucketMinutes: number;
+  let externalInterval: string;
   
   switch (interval) {
+    case "5m":
+      startTime = new Date(now.getTime() - 5 * 60 * 1000);
+      bucketMinutes = 1; // 1 minute buckets
+      externalInterval = "1h";
+      break;
+    case "15m":
+      startTime = new Date(now.getTime() - 15 * 60 * 1000);
+      bucketMinutes = 1; // 1 minute buckets
+      externalInterval = "1h";
+      break;
+    case "1h":
+      startTime = new Date(now.getTime() - 60 * 60 * 1000);
+      bucketMinutes = 2; // 2 minute buckets
+      externalInterval = "1h";
+      break;
+    case "4h":
+      startTime = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+      bucketMinutes = 10; // 10 minute buckets
+      externalInterval = "6h";
+      break;
     case "1d":
       startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       bucketMinutes = 60; // 1 hour buckets
+      externalInterval = "1d";
       break;
     case "1w":
       startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       bucketMinutes = 360; // 6 hour buckets
+      externalInterval = "1w";
       break;
     case "1m":
       startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       bucketMinutes = 1440; // 1 day buckets
+      externalInterval = "1m";
       break;
     case "all":
       startTime = new Date(market.createdAt);
       bucketMinutes = 1440; // 1 day buckets
+      externalInterval = "max";
       break;
     default:
       startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       bucketMinutes = 60;
+      externalInterval = "1d";
   }
   
-  // If market was created after startTime, use market creation time
-  if (market.createdAt > startTime) {
-    startTime = new Date(market.createdAt);
-  }
+  // Do NOT clamp to market.createdAt.
+  // For Polymarket-synced markets, createdAt is when we synced locally and can be *after*
+  // the requested window, which would wrongly filter out all external history.
   
   let data: ChartPoint[] = [];
   let source: ChartResponse["source"] = "local";
   
   // For markets synced from Polymarket, fetch their historical data
   if (market.externalId) {
-    const pmHistory = await fetchPolymarketHistory(market.externalId, interval);
+    const pmHistory = await fetchPolymarketHistory(market.externalId, externalInterval);
     
     if (pmHistory.length > 0) {
-      // Filter Polymarket data to only include points before our market creation
-      const marketCreationTs = Math.floor(market.createdAt.getTime() / 1000);
-      const historicalData = pmHistory.filter(p => p.timestamp < marketCreationTs);
+      // Filter Polymarket data to the requested window.
+      // Our DB market.createdAt is when we synced/created locally, not necessarily the true market start.
+      // For short intervals, we want the most recent data regardless of local creation time.
+      const startTs = Math.floor(startTime.getTime() / 1000);
+      const endTs = Math.floor(endTime.getTime() / 1000);
+      const historicalData = pmHistory.filter((p) => p.timestamp >= startTs && p.timestamp <= endTs);
       
-      // Get local trades after market creation
-      const localData = await aggregateLocalTrades(marketId, market.createdAt, endTime, bucketMinutes);
+      // Get local trades for the same window
+      const localData = await aggregateLocalTrades(marketId, startTime, endTime, bucketMinutes);
       
       // Blend: Polymarket history + local trades
       data = [...historicalData, ...localData];
@@ -237,7 +265,7 @@ export async function registerChartRoutes(app: FastifyInstance) {
     const params = z.object({ id: z.string().uuid() }).parse(req.params);
     const query = z
       .object({
-        interval: z.enum(["1d", "1w", "1m", "all"]).optional()
+        interval: z.enum(["5m", "15m", "1h", "4h", "1d", "1w", "1m", "all"]).optional()
       })
       .parse(req.query);
     

@@ -95,17 +95,24 @@ export async function registerMarketRoutes(app: FastifyInstance) {
       orderBy: { createdAt: "desc" },
       take: limit,
       include: {
-        agent: { select: { displayName: true } }
+        agent: { select: { displayName: true } },
+        user: { select: { xHandle: true, xName: true, xAvatar: true } }
       }
     });
 
     return trades.map((t) => {
       const priceYesAfter = quotePriceYes({ yesMicros: t.poolYesSharesMicros, noMicros: t.poolNoSharesMicros });
+      const accountType = t.userId ? "HUMAN" : "AGENT";
+      const traderId = t.userId ?? t.agentId;
+      const traderDisplayName = t.userId ? t.user?.xName ?? t.user?.xHandle ?? null : t.agent?.displayName ?? null;
       return {
         id: t.id,
         createdAt: t.createdAt,
-        agentId: t.agentId,
-        agentDisplayName: t.agent.displayName,
+        accountType,
+        traderId,
+        traderDisplayName,
+        xHandle: t.user?.xHandle ?? null,
+        xAvatar: t.user?.xAvatar ?? null,
         side: t.side,
         // In a binary prediction market, BUY_NO is equivalent to SELL_YES.
         action: t.side === "YES" ? "BUY" : "SELL",

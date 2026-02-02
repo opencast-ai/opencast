@@ -160,17 +160,22 @@ async function resolveBotCountMarket(
     const outcome: "YES" | "NO" = currentCount > previousCount ? "YES" : "NO";
     
     await prisma.$transaction(async (tx) => {
-      // Pay out winning positions
       for (const pos of market.positions) {
         const payout = outcome === "YES" ? pos.yesSharesMicros : pos.noSharesMicros;
         if (payout > 0n) {
-          await tx.agent.update({
-            where: { id: pos.agentId },
-            data: { balanceMicros: { increment: payout } }
-          });
+          if (pos.agentId) {
+            await tx.agent.update({
+              where: { id: pos.agentId },
+              data: { balanceMicros: { increment: payout } }
+            });
+          } else if (pos.userId) {
+            await tx.user.update({
+              where: { id: pos.userId },
+              data: { balanceMicros: { increment: payout } }
+            });
+          }
         }
         
-        // Redeem/burn shares
         await tx.position.update({
           where: { id: pos.id },
           data: { yesSharesMicros: 0n, noSharesMicros: 0n }

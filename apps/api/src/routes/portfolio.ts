@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { FastifyInstance } from "fastify";
 
-import { requireAgent } from "../auth.js";
+import { requireAccount } from "../auth.js";
 import { prisma } from "../db.js";
 import { microsToCoinNumber } from "../constants.js";
 import { quotePriceYes } from "../amm/fpmm.js";
@@ -26,24 +26,29 @@ function pricesForMarket(params: {
   return { priceYes: 0.5, priceNo: 0.5 };
 }
 
-async function buildPortfolio(agentId: string) {
-  const [agent, trades] = await Promise.all([
-    prisma.agent.findUnique({
-      where: { id: agentId },
-      select: {
-        id: true,
-        balanceMicros: true,
-        positions: {
-          include: {
-            market: {
-              include: { pool: true }
-            }
-          }
+type PortfolioOwner =
+  | { accountType: "AGENT"; agentId: string }
+  | { accountType: "HUMAN"; userId: string };
+
+async function buildPortfolio(owner: PortfolioOwner) {
+  const [balanceMicros, positions, trades] = await Promise.all([
+    owner.accountType === "AGENT"
+      ? prisma.agent
+          .findUnique({ where: { id: owner.agentId }, select: { balanceMicros: true } })
+          .then((a) => a?.balanceMicros ?? null)
+      : prisma.user
+          .findUnique({ where: { id: owner.userId }, select: { balanceMicros: true } })
+          .then((u) => u?.balanceMicros ?? null),
+    prisma.position.findMany({
+      where: owner.accountType === "AGENT" ? { agentId: owner.agentId } : { userId: owner.userId },
+      include: {
+        market: {
+          include: { pool: true }
         }
       }
     }),
     prisma.trade.findMany({
-      where: { agentId },
+      where: owner.accountType === "AGENT" ? { agentId: owner.agentId } : { userId: owner.userId },
       include: {
         market: {
           select: {
@@ -57,8 +62,8 @@ async function buildPortfolio(agentId: string) {
     })
   ]);
 
-  if (!agent) {
-    throw Object.assign(new Error("Agent not found"), { statusCode: 404 });
+  if (balanceMicros === null) {
+    throw Object.assign(new Error(owner.accountType === "AGENT" ? "Agent not found" : "User not found"), { statusCode: 404 });
   }
 
   const costBasisByMarketId = new Map<string, bigint>();
@@ -111,7 +116,7 @@ async function buildPortfolio(agentId: string) {
     historyAgg.set(t.marketId, next);
   }
 
-  const positions = agent.positions
+  const positionRows = positions
     .filter((p) => p.yesSharesMicros > 0n || p.noSharesMicros > 0n)
     .map((p) => {
       const pool = p.market.pool;
@@ -164,23 +169,35 @@ async function buildPortfolio(agentId: string) {
     })
     .slice(0, 4);
 
-  return {
-    agentId: agent.id,
-    balanceCoin: microsToCoinNumber(agent.balanceMicros),
-    positions,
-    history
-  };
+  return owner.accountType === "AGENT"
+    ? {
+        accountType: "AGENT" as const,
+        agentId: owner.agentId,
+        balanceCoin: microsToCoinNumber(balanceMicros),
+        positions: positionRows,
+        history
+      }
+    : {
+        accountType: "HUMAN" as const,
+        userId: owner.userId,
+        balanceCoin: microsToCoinNumber(balanceMicros),
+        positions: positionRows,
+        history
+      };
 }
 
 export async function registerPortfolioRoutes(app: FastifyInstance) {
   app.get("/portfolio", async (req) => {
-    const { agentId } = await requireAgent(req);
-    return buildPortfolio(agentId);
+    const account = await requireAccount(req);
+    if (typeof account.agentId === "string") {
+      return buildPortfolio({ accountType: "AGENT", agentId: account.agentId });
+    }
+    return buildPortfolio({ accountType: "HUMAN", userId: account.userId });
   });
 
   // Public portfolio view (for demo / profile pages).
   app.get("/agents/:agentId/portfolio", async (req) => {
     const params = z.object({ agentId: z.string().uuid() }).parse(req.params);
-    return buildPortfolio(params.agentId);
+    return buildPortfolio({ accountType: "AGENT", agentId: params.agentId });
   });
 }

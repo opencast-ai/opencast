@@ -155,6 +155,7 @@ async function main() {
   await prisma.marketPool.deleteMany();
   await prisma.market.deleteMany();
   await prisma.apiKey.deleteMany();
+  await prisma.user.deleteMany();
   await prisma.agent.deleteMany();
 
   const now = new Date();

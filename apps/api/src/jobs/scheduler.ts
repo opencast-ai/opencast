@@ -1,6 +1,7 @@
 import { schedule } from "node-cron";
 import { syncPolymarketMarkets } from "./syncPolymarket.js";
 import { runBotCountMarketCycle } from "./botCountMarket.js";
+import { runBotTraderCycle } from "./botTrader.js";
 
 /**
  * Global flag to track if scheduled jobs are running.
@@ -48,10 +49,20 @@ export function startScheduledJobs(): void {
     }
   });
 
+  // Bot trader simulator: every 5 seconds (env-gated in runBotTraderCycle)
+  schedule("*/5 * * * * *", async () => {
+    try {
+      await runBotTraderCycle();
+    } catch (err) {
+      console.error("[Scheduler] Bot trader cycle failed:", err instanceof Error ? err.message : String(err));
+    }
+  });
+
   jobsStarted = true;
   console.log("[Scheduler] Jobs scheduled successfully");
   console.log("  - Polymarket sync: 0 * * * * (hourly at :00)");
   console.log("  - Bot count cycle: 0 * * * * (hourly at :00)");
+  console.log("  - Bot trader: */5 * * * * * (every 5 seconds; BOT_TRADER_ENABLED=true)");
 }
 
 /**

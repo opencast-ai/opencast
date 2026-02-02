@@ -32,25 +32,25 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     if (market.status !== "OPEN") throw Object.assign(new Error("Market not open"), { statusCode: 400 });
 
     await prisma.$transaction(async (tx) => {
-      // Pay out winning positions (1 micros collateral per 1 micros share).
       for (const pos of market.positions) {
         const payout = body.outcome === "YES" ? pos.yesSharesMicros : pos.noSharesMicros;
         if (payout > 0n) {
-          await tx.agent.update({
-            where: { id: pos.agentId },
-            data: {
-              balanceMicros: { increment: payout }
-            }
-          });
+          if (pos.agentId) {
+            await tx.agent.update({
+              where: { id: pos.agentId },
+              data: { balanceMicros: { increment: payout } }
+            });
+          } else if (pos.userId) {
+            await tx.user.update({
+              where: { id: pos.userId },
+              data: { balanceMicros: { increment: payout } }
+            });
+          }
         }
 
-        // Redeem/burn shares once settled so portfolio reflects closed position.
         await tx.position.update({
           where: { id: pos.id },
-          data: {
-            yesSharesMicros: 0n,
-            noSharesMicros: 0n
-          }
+          data: { yesSharesMicros: 0n, noSharesMicros: 0n }
         });
       }
 

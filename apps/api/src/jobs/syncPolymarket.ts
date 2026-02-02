@@ -4,14 +4,27 @@ import { z } from "zod";
 
 const POLYMARKET_API_URL = "https://gamma-api.polymarket.com/markets";
 
+const JsonStringArray = z.preprocess((v) => {
+  if (typeof v === "string") {
+    try {
+      return JSON.parse(v);
+    } catch {
+      return v;
+    }
+  }
+  return v;
+}, z.array(z.string()));
+
 // Schema for Polymarket market response
 const PolymarketMarketSchema = z.object({
   id: z.string(),
-  title: z.string(),
+  conditionId: z.string().optional(),
+  question: z.string(),
   description: z.string().optional(),
   category: z.string().optional(),
   endDate: z.string().datetime().optional(),
-  outcomes: z.array(z.string()),
+  outcomes: JsonStringArray,
+  clobTokenIds: JsonStringArray.optional(),
   outcomePrices: z.string().optional(), // JSON string like "[\"0.65\",\"0.35\"]"
   volume: z.string().optional(),
   slug: z.string().optional()
@@ -30,21 +43,23 @@ interface SyncResult {
  * Parse Polymarket outcome prices from JSON string.
  * Returns { yesPrice, noPrice } in decimal format (0-1)
  */
-function parseOutcomePrices(outcomePricesJson: string | undefined): { yesPrice: number; noPrice: number } | null {
+function parseOutcomePrices(outcomePricesJson: string | undefined): { yesPrice: number } | null {
   if (!outcomePricesJson) return null;
   
   try {
     const prices = JSON.parse(outcomePricesJson) as string[];
     if (prices.length < 2) return null;
-    
+
     const yesPrice = parseFloat(prices[0]!);
     const noPrice = parseFloat(prices[1]!);
-    
+
     if (isNaN(yesPrice) || isNaN(noPrice)) return null;
     if (yesPrice <= 0 || noPrice <= 0) return null;
     if (yesPrice >= 1 || noPrice >= 1) return null;
-    
-    return { yesPrice, noPrice };
+
+    void noPrice;
+
+    return { yesPrice };
   } catch {
     return null;
   }
@@ -58,9 +73,9 @@ async function fetchTopPolymarketMarkets(limit: number = 5): Promise<z.infer<typ
   const url = new URL(POLYMARKET_API_URL);
   url.searchParams.append("closed", "false");
   url.searchParams.append("active", "true");
-  url.searchParams.append("sort", "volume");
-  url.searchParams.append("order", "desc");
-  url.searchParams.append("limit", "20"); // Fetch more to filter binary markets
+  // NOTE: Gamma API currently rejects sort/order params (422 "order fields are not valid").
+  // We fetch a small batch and locally select markets by volume.
+  url.searchParams.append("limit", "50"); // Fetch more to filter binary markets
   
   const response = await fetch(url.toString());
   if (!response.ok) {
@@ -71,15 +86,22 @@ async function fetchTopPolymarketMarkets(limit: number = 5): Promise<z.infer<typ
   const parsed = PolymarketResponseSchema.parse(data);
   
   // Filter for binary markets only (YES/NO outcomes)
-  const binaryMarkets = parsed.filter(m => {
+  const binaryMarkets = parsed.filter((m) => {
     if (m.outcomes.length !== 2) return false;
     const first = m.outcomes[0];
     const second = m.outcomes[1];
     if (!first || !second) return false;
     return first.toLowerCase().includes("yes") && second.toLowerCase().includes("no");
   });
-  
-  return binaryMarkets.slice(0, limit);
+
+  // Prefer higher volume markets when volume is provided.
+  const sorted = [...binaryMarkets].sort((a, b) => {
+    const av = a.volume ? Number(a.volume) : 0;
+    const bv = b.volume ? Number(b.volume) : 0;
+    return bv - av;
+  });
+
+  return sorted.slice(0, limit);
 }
 
 /**
@@ -90,6 +112,17 @@ async function marketExists(externalId: string): Promise<boolean> {
     where: { externalId }
   });
   return existing !== null;
+}
+
+function getYesTokenId(pmMarket: z.infer<typeof PolymarketMarketSchema>): string | null {
+  const tokenIds = pmMarket.clobTokenIds;
+  if (!tokenIds || tokenIds.length < 2) return null;
+
+  const outcomes = pmMarket.outcomes;
+  const yesIndex = outcomes.findIndex((o) => o?.toLowerCase().includes("yes"));
+  if (yesIndex < 0) return null;
+
+  return tokenIds[yesIndex] ?? null;
 }
 
 /**
@@ -104,12 +137,15 @@ async function createMarketFromPolymarket(
   pmMarket: z.infer<typeof PolymarketMarketSchema>,
   initialLiquidityCoin: number = 1000
 ): Promise<boolean> {
+  const yesTokenId = getYesTokenId(pmMarket);
+  if (!yesTokenId) return false;
+
   const prices = parseOutcomePrices(pmMarket.outcomePrices);
   if (!prices) {
     return false;
   }
   
-  const { yesPrice, noPrice } = prices;
+  const { yesPrice } = prices;
   const totalLiquidity = BigInt(initialLiquidityCoin) * MICROS_PER_COIN;
   
   // Calculate shares to match Polymarket's price ratio
@@ -129,10 +165,12 @@ async function createMarketFromPolymarket(
   
   await prisma.market.create({
     data: {
-      title: pmMarket.title,
+      title: pmMarket.question,
       description: pmMarket.description || `Synced from Polymarket. Original: https://polymarket.com/market/${pmMarket.slug || pmMarket.id}`,
       closesAt,
-      externalId: pmMarket.id,
+      // IMPORTANT: Polymarket CLOB timeseries endpoints (prices-history) expect the CLOB token id.
+      // We use the YES token id for the chart.
+      externalId: yesTokenId,
       category: pmMarket.category || "Crypto",
       pool: {
         create: {
@@ -172,10 +210,12 @@ export async function syncPolymarketMarkets(): Promise<SyncResult> {
     // Process each market
     for (const pmMarket of markets) {
       try {
-        // Check if already exists
-        const exists = await marketExists(pmMarket.id);
+        const yesTokenId = getYesTokenId(pmMarket);
+
+        // Check if already exists (by Polymarket CLOB YES token id)
+        const exists = yesTokenId ? await marketExists(yesTokenId) : false;
         if (exists) {
-          console.log(`[Polymarket Sync] Skipping existing market: ${pmMarket.title.slice(0, 50)}...`);
+          console.log(`[Polymarket Sync] Skipping existing market: ${pmMarket.question.slice(0, 50)}...`);
           result.skipped++;
           continue;
         }
@@ -183,10 +223,10 @@ export async function syncPolymarketMarkets(): Promise<SyncResult> {
         // Create new market
         const created = await createMarketFromPolymarket(pmMarket);
         if (created) {
-          console.log(`[Polymarket Sync] Created market: ${pmMarket.title.slice(0, 50)}...`);
+          console.log(`[Polymarket Sync] Created market: ${pmMarket.question.slice(0, 50)}...`);
           result.created++;
         } else {
-          result.errors.push(`Failed to create market ${pmMarket.id}: invalid price data`);
+          result.errors.push(`Failed to create market ${pmMarket.id}: invalid price data or missing token ids`);
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);

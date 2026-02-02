@@ -4,10 +4,13 @@ import cors from "@fastify/cors";
 import { registerAgentRoutes } from "./routes/agents.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerChartRoutes } from "./routes/chart.js";
+import { registerClaimRoutes } from "./routes/claim.js";
 import { registerLeaderboardRoutes } from "./routes/leaderboard.js";
 import { registerMarketRoutes } from "./routes/markets.js";
+import { registerOAuthRoutes } from "./routes/oauth.js";
 import { registerPortfolioRoutes } from "./routes/portfolio.js";
 import { registerQuoteRoutes } from "./routes/quote.js";
+import { registerSkillRoutes } from "./routes/skill.js";
 import { registerTradeRoutes } from "./routes/trades.js";
 
 export function buildServer() {
@@ -55,6 +58,9 @@ export function buildServer() {
   registerPortfolioRoutes(app);
   registerLeaderboardRoutes(app);
   registerAdminRoutes(app);
+  registerOAuthRoutes(app);
+  registerClaimRoutes(app);
+  registerSkillRoutes(app);
 
   return app;
 }

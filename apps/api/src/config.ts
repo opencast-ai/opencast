@@ -5,7 +5,11 @@ const envSchema = z.object({
   HOST: z.string().optional(),
   PORT: z.coerce.number().int().positive().optional(),
   DATABASE_URL: z.string().optional(),
-  REDIS_URL: z.string().optional()
+  REDIS_URL: z.string().optional(),
+  TWITTER_CLIENT_ID: z.string().optional(),
+  TWITTER_CLIENT_SECRET: z.string().optional(),
+  TWITTER_CALLBACK_URL: z.string().optional(),
+  FRONTEND_URL: z.string().optional()
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
