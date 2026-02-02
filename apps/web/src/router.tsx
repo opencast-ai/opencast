@@ -8,6 +8,10 @@ export type Route =
   | { name: "config" }
   | { name: "docs" }
   | { name: "api" }
+  | { name: "login" }
+  | { name: "authCallback" }
+  | { name: "claim"; token: string }
+  | { name: "user"; userId: string }
   | { name: "agent"; agentId: string }
   | { name: "market"; marketId: string }
   | { name: "notFound"; path: string };
@@ -21,7 +25,7 @@ function normalizeHash(raw: string): string {
 
 export function parseHash(rawHash: string): Route {
   const hash = normalizeHash(rawHash);
-  const path = hash.slice(1); // remove '#'
+  const path = hash.slice(1);
   const parts = path.split("/").filter(Boolean);
 
   if (parts.length === 0) return { name: "landing" };
@@ -32,6 +36,14 @@ export function parseHash(rawHash: string): Route {
   if (parts[0] === "config") return { name: "config" };
   if (parts[0] === "docs") return { name: "docs" };
   if (parts[0] === "api") return { name: "api" };
+  if (parts[0] === "login") return { name: "login" };
+  if (parts[0] === "auth-callback") return { name: "authCallback" };
+  if (parts[0] === "claim" && typeof parts[1] === "string") {
+    return { name: "claim", token: parts[1] };
+  }
+  if (parts[0] === "user" && typeof parts[1] === "string") {
+    return { name: "user", userId: parts[1] };
+  }
   if (parts[0] === "agent" && typeof parts[1] === "string") {
     return { name: "agent", agentId: parts[1] };
   }

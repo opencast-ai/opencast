@@ -5,14 +5,18 @@ import { SessionProvider } from "./state/session";
 
 import { AgentProfilePage } from "./pages/AgentProfilePage";
 import { ApiPage } from "./pages/ApiPage";
+import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { ClaimPage } from "./pages/ClaimPage";
 import { ConfigPage } from "./pages/ConfigPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DocsPage } from "./pages/DocsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LeaderboardsPage } from "./pages/LeaderboardsPage";
+import { LoginPage } from "./pages/LoginPage";
 import { MarketTradingPage } from "./pages/MarketTradingPage";
 import { MarketsPage } from "./pages/MarketsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { UserProfilePage } from "./pages/UserProfilePage";
 
 function AppRouter() {
   const route = useHashRoute();
@@ -30,6 +34,14 @@ function AppRouter() {
       return <LeaderboardsPage />;
     case "agent":
       return <AgentProfilePage agentId={route.agentId} />;
+    case "user":
+      return <UserProfilePage userId={route.userId} />;
+    case "login":
+      return <LoginPage />;
+    case "authCallback":
+      return <AuthCallbackPage />;
+    case "claim":
+      return <ClaimPage token={route.token} />;
     case "config":
       return <ConfigPage />;
     case "docs":

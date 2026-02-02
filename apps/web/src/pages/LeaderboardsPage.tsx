@@ -3,6 +3,7 @@ import React from "react";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { fmtCoin, shortId } from "../lib/format";
 import { Link } from "../router";
+import type { Badge } from "../types";
 
 import { TerminalHeader } from "../components/TerminalHeader";
 import { TerminalSearchInput } from "../components/TerminalSearchInput";
@@ -18,8 +19,24 @@ function tierForBalance(balanceCoin: number): Tier {
   return "SHRIMP";
 }
 
+function badgeStyle(badge: Badge): { bg: string; text: string; border: string } {
+  switch (badge) {
+    case "TOP_0.1%":
+      return { bg: "bg-yellow-500/20", text: "text-yellow-400", border: "border-yellow-500/40" };
+    case "TOP_0.5%":
+      return { bg: "bg-gray-400/20", text: "text-gray-300", border: "border-gray-400/40" };
+    case "TOP_1%":
+      return { bg: "bg-orange-500/20", text: "text-orange-400", border: "border-orange-500/40" };
+    case "TOP_5%":
+      return { bg: "bg-cyan-500/20", text: "text-cyan-400", border: "border-cyan-500/40" };
+    case "TOP_10%":
+      return { bg: "bg-white/10", text: "text-text-dim", border: "border-white/20" };
+    default:
+      return { bg: "", text: "", border: "" };
+  }
+}
+
 function sparkPath(seed: string): string {
-  // Deterministic placeholder sparkline for M0 (no historical series yet).
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
     h ^= seed.charCodeAt(i);
@@ -38,8 +55,9 @@ function sparkPath(seed: string): string {
 
 export function LeaderboardsPage() {
   const [view, setView] = React.useState<"wealth" | "returns">("wealth");
+  const [accountTypeFilter, setAccountTypeFilter] = React.useState<"all" | "agent" | "human">("all");
   const sort = view === "returns" ? "roi" : "balance";
-  const lbQ = useLeaderboard({ sort });
+  const lbQ = useLeaderboard({ sort, type: accountTypeFilter });
 
   const [tierFilter, setTierFilter] = React.useState<Tier | "ALL">("ALL");
   const [search, setSearch] = React.useState<string>("");
@@ -48,7 +66,7 @@ export function LeaderboardsPage() {
     if (tierFilter !== "ALL" && tierForBalance(r.balanceCoin) !== tierFilter) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    return `${r.displayName ?? ""} ${r.agentId}`.toLowerCase().includes(q);
+    return `${r.displayName ?? ""} ${r.id} ${r.xHandle ?? ""}`.toLowerCase().includes(q);
   });
 
   return (
@@ -76,20 +94,31 @@ export function LeaderboardsPage() {
           />
 
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-            <TerminalSegmented
-              value={view}
-              onChange={setView}
-              options={[
-                { value: "wealth", label: "[ WEALTH ]" },
-                { value: "returns", label: "[ ROI % ]" }
-              ]}
-            />
+            <div className="flex items-center gap-4">
+              <TerminalSegmented
+                value={view}
+                onChange={setView}
+                options={[
+                  { value: "wealth", label: "[ WEALTH ]" },
+                  { value: "returns", label: "[ ROI % ]" }
+                ]}
+              />
+              <TerminalSegmented
+                value={accountTypeFilter}
+                onChange={setAccountTypeFilter}
+                options={[
+                  { value: "all", label: "ALL" },
+                  { value: "agent", label: "AGENTS" },
+                  { value: "human", label: "HUMANS" }
+                ]}
+              />
+            </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
               <TerminalSearchInput
                 value={search}
                 onChange={setSearch}
-                placeholder="> Search agent_id..."
+                placeholder="> Search..."
                 className="max-w-none md:max-w-xs"
               />
               <button
@@ -150,36 +179,37 @@ export function LeaderboardsPage() {
             head={
               <tr className="border-b border-border-terminal bg-surface-terminal text-[10px] text-text-dim uppercase tracking-widest font-mono">
                 <th className="p-3 w-12 text-center">#</th>
-                <th className="p-3">Agent_ID</th>
+                <th className="p-3">Trader</th>
+                <th className="p-3">Type</th>
                 <th className="p-3">Class</th>
                 <th className="p-3 w-32 text-center">7D_History</th>
                 <th className="p-3 text-right">ROI</th>
                 <th className="p-3 text-right">Net_Asset_Val</th>
-                <th className="p-3 text-center">Badges</th>
+                <th className="p-3 text-center">Badge</th>
               </tr>
             }
             body={
               <tbody className="divide-y divide-border-terminal text-xs">
                 {lbQ.loading ? (
                   <tr>
-                    <td className="p-4 text-text-dim" colSpan={7}>
-                      Loading…
+                    <td className="p-4 text-text-dim" colSpan={8}>
+                      Loading...
                     </td>
                   </tr>
                 ) : lbQ.error ? (
                   <tr>
-                    <td className="p-4 text-red-400" colSpan={7}>
+                    <td className="p-4 text-red-400" colSpan={8}>
                       {lbQ.error}
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td className="p-4 text-text-dim" colSpan={7}>
-                      No agents.
+                    <td className="p-4 text-text-dim" colSpan={8}>
+                      No traders found.
                     </td>
                   </tr>
                 ) : (
-                  rows.map((r, idx) => {
+                  rows.map((r) => {
                     const tier = tierForBalance(r.balanceCoin);
                     const tierCls =
                       tier === "WHALE"
@@ -188,31 +218,56 @@ export function LeaderboardsPage() {
                           ? "text-accent-blue border-accent-blue/40"
                           : "text-text-dim border-border-terminal";
                     const roiCls = r.roi >= 0 ? "text-neon-green text-glow-green" : "text-neon-red text-glow-red";
+                    const bStyle = badgeStyle(r.badge);
+                    const profileLink = r.accountType === "HUMAN" ? `/user/${r.id}` : `/agent/${r.id}`;
 
                     return (
-                      <tr key={r.agentId} className="hover:bg-surface-terminal/80 transition-colors group">
-                        <td className="p-3 text-center font-bold text-lobster">{String(idx + 1).padStart(2, "0")}</td>
+                      <tr key={r.id} className="hover:bg-surface-terminal/80 transition-colors group">
+                        <td className="p-3 text-center font-bold text-lobster">{String(r.rank).padStart(2, "0")}</td>
                         <td className="p-3">
                           <div className="flex items-center gap-3">
-                            <div className="size-8 bg-surface-terminal border border-border-terminal flex items-center justify-center text-[10px] text-white font-bold rounded-sm">
-                              AG
-                            </div>
+                            {r.xAvatar ? (
+                              <img
+                                src={r.xAvatar}
+                                alt=""
+                                className="size-8 rounded-full border border-border-terminal"
+                              />
+                            ) : (
+                              <div className="size-8 bg-surface-terminal border border-border-terminal flex items-center justify-center text-[10px] text-white font-bold rounded-sm">
+                                {r.accountType === "HUMAN" ? "H" : "AG"}
+                              </div>
+                            )}
                             <div className="flex flex-col">
-                              <Link to={`/agent/${r.agentId}`} className="text-white font-bold tracking-tight hover:text-lobster">
-                                {r.displayName ?? shortId(r.agentId)}
+                              <Link to={profileLink} className="text-white font-bold tracking-tight hover:text-lobster">
+                                {r.displayName ?? (r.xHandle ? `@${r.xHandle}` : shortId(r.id))}
                               </Link>
-                              <span className="text-text-dim text-[10px]">{shortId(r.agentId)}</span>
+                              <span className="text-text-dim text-[10px]">
+                                {r.xHandle ? `@${r.xHandle}` : shortId(r.id)}
+                              </span>
                             </div>
                           </div>
                         </td>
                         <td className="p-3">
-                          <span className={`text-[10px] uppercase font-bold border px-1 py-0.5 rounded-sm ${tierCls}`}>{tier}</span>
+                          <span
+                            className={`text-[10px] uppercase font-bold border px-1 py-0.5 rounded-sm ${
+                              r.accountType === "HUMAN"
+                                ? "text-accent-blue border-accent-blue/40"
+                                : "text-primary border-primary/40"
+                            }`}
+                          >
+                            {r.accountType}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className={`text-[10px] uppercase font-bold border px-1 py-0.5 rounded-sm ${tierCls}`}>
+                            {tier}
+                          </span>
                         </td>
                         <td className="p-3">
                           <svg className="w-24 h-6" viewBox="0 0 100 30" aria-label="sparkline">
                             <path
                               className={`sparkline ${r.roi >= 0 ? "stroke-neon-green" : "stroke-neon-red"}`}
-                              d={sparkPath(r.agentId)}
+                              d={sparkPath(r.id)}
                               fill="none"
                               strokeWidth="1.5"
                             />
@@ -226,8 +281,18 @@ export function LeaderboardsPage() {
                           <div className="text-text-dim text-[10px]">Coin</div>
                         </td>
                         <td className="p-3 text-center">
-                          <div className="flex justify-center gap-1 opacity-60 group-hover:opacity-100">
-                            <span className="px-1 py-0.5 text-[9px] border border-border-terminal text-text-dim">M0</span>
+                          <div className="flex justify-center gap-1">
+                            {r.badge ? (
+                              <span
+                                className={`px-1.5 py-0.5 text-[9px] font-bold border rounded-sm ${bStyle.bg} ${bStyle.text} ${bStyle.border}`}
+                              >
+                                {r.badge}
+                              </span>
+                            ) : (
+                              <span className="px-1 py-0.5 text-[9px] border border-border-terminal text-text-dim opacity-40">
+                                --
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>

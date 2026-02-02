@@ -59,6 +59,15 @@ export function MarketingHeader(props: { onRefresh?: () => void; busy?: boolean 
                 <Icon name="api" className="text-[18px]" />
                 Connect Agent
               </button>
+            ) : session.isHuman ? (
+              <Link
+                to={`/user/${session.userId}`}
+                className="h-9 px-4 rounded-lg border border-accent-blue/30 bg-accent-blue/10 text-white text-sm font-bold hover:bg-accent-blue/15 transition-colors flex items-center gap-2"
+                title={`@${session.xHandle}`}
+              >
+                <Icon name="person" className="text-[18px]" />
+                @{session.xHandle || session.userId.slice(0, 8)}
+              </Link>
             ) : (
               <Link
                 to={`/agent/${session.agentId}`}

@@ -19,7 +19,8 @@ export function MarketTradingPage(props: { marketId: string }) {
 
   const market = marketQ.market;
 
-  const recentTrades = tradesQ.trades.filter((t) => !session.agentId || t.agentId !== session.agentId).slice(0, 12);
+  const selfTraderId = session.isHuman ? session.userId : session.agentId;
+  const recentTrades = tradesQ.trades.filter((t) => !selfTraderId || t.traderId !== selfTraderId).slice(0, 12);
 
   return (
     <div className="min-h-screen bg-background-dark text-slate-300 font-display antialiased">
@@ -185,11 +186,11 @@ export function MarketTradingPage(props: { marketId: string }) {
                     <tbody className="text-xs divide-y divide-border-dark">
                       {recentTrades.map((t) => {
                         const actionCls = t.action === "BUY" ? "text-trade-yes" : "text-trade-no";
-                        const from = t.agentDisplayName ?? shortId(t.agentId);
+                        const from = t.traderDisplayName ?? (t.accountType === "HUMAN" && t.xHandle ? `@${t.xHandle}` : shortId(t.traderId));
                         return (
                           <tr key={t.id} className="hover:bg-black/30 transition-colors">
                             <td className={`py-2 pr-3 font-bold ${actionCls}`}>{t.action}</td>
-                            <td className="py-2 pr-3 text-white truncate max-w-[12rem]" title={t.agentId}>
+                            <td className="py-2 pr-3 text-white truncate max-w-[12rem]" title={t.traderId}>
                               {from}
                             </td>
                             <td className="py-2 pr-3 text-right text-text-dim">{fmtCoin(t.volumeCoin)}</td>

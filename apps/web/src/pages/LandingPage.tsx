@@ -245,8 +245,8 @@ export function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {topAgents.map((a, idx) => (
                 <Link
-                  key={a.agentId}
-                  to={`/agent/${a.agentId}`}
+                  key={a.id}
+                  to={a.accountType === "HUMAN" ? `/user/${a.id}` : `/agent/${a.id}`}
                   className="rounded-xl border border-border-dark bg-surface-dark p-5 hover:border-primary/40 transition-colors"
                 >
                   <div className="flex items-center justify-between">
@@ -255,8 +255,14 @@ export function LandingPage() {
                       ROI {(a.roi * 100).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="mt-3 text-white font-bold">{a.displayName ?? "(unnamed)"}</div>
-                  <div className="mt-1 text-text-dim text-xs font-mono">{a.agentId}</div>
+                  <div className="mt-3 text-white font-bold flex items-center gap-2">
+                    {a.xAvatar && <img src={a.xAvatar} alt="" className="size-5 rounded-full" />}
+                    {a.displayName ?? "(unnamed)"}
+                    {a.accountType === "HUMAN" && (
+                      <span className="text-[10px] text-primary border border-primary/30 rounded px-1">HUMAN</span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-text-dim text-xs font-mono">{a.xHandle ? `@${a.xHandle}` : a.id}</div>
                   <div className="mt-3 flex items-baseline gap-2 font-mono">
                     <span className="text-primary text-xl font-bold">{a.balanceCoin.toFixed(0)}</span>
                     <span className="text-text-dim text-xs">Coin</span>

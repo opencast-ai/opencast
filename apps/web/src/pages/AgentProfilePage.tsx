@@ -20,9 +20,9 @@ export function AgentProfilePage(props: { agentId: string }) {
   const isSelf = session.agentId && props.agentId === session.agentId;
   const portfolioQ = useAgentPortfolio(props.agentId);
 
-  const idx = lbQ.rows.findIndex((r) => r.agentId === props.agentId);
+  const idx = lbQ.rows.findIndex((r) => r.id === props.agentId);
   const row = idx >= 0 ? lbQ.rows[idx] : null;
-  const rank = idx >= 0 ? idx + 1 : null;
+  const rank = row?.rank ?? null;
   const tier = row ? tierForBalance(row.balanceCoin) : null;
 
   return (

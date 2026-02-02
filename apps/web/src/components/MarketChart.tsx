@@ -23,9 +23,13 @@ interface ChartData {
   source: "polymarket" | "local" | "hybrid";
 }
 
-type Interval = "1d" | "1w" | "1m" | "all";
+type Interval = "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1m" | "all";
 
 const intervals: { value: Interval; label: string }[] = [
+  { value: "5m", label: "5M" },
+  { value: "15m", label: "15M" },
+  { value: "1h", label: "1H" },
+  { value: "4h", label: "4H" },
   { value: "1d", label: "1D" },
   { value: "1w", label: "1W" },
   { value: "1m", label: "1M" },
@@ -40,6 +44,15 @@ function formatTime(timestamp: number, interval: Interval): string {
   const date = new Date(timestamp * 1000);
   
   switch (interval) {
+    case "5m":
+    case "15m":
+    case "1h":
+    case "4h":
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
     case "1d":
       return date.toLocaleTimeString("en-US", {
         hour: "numeric",
@@ -114,6 +127,15 @@ export function MarketChart({ marketId }: { marketId: string }) {
 
   React.useEffect(() => {
     void fetchChartData();
+
+    const refreshMs = 2000;
+    const handle = window.setInterval(() => {
+      void fetchChartData();
+    }, refreshMs);
+
+    return () => {
+      window.clearInterval(handle);
+    };
   }, [fetchChartData]);
 
   const chartPoints = chartData?.data ?? [];

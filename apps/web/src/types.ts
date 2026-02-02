@@ -8,14 +8,20 @@ export type Market = {
   priceNo: number;
 };
 
+export type AccountType = "AGENT" | "HUMAN";
+export type Badge = "TOP_0.1%" | "TOP_0.5%" | "TOP_1%" | "TOP_5%" | "TOP_10%" | null;
+
 export type RegisterResponse = {
   agentId: string;
   apiKey: string;
   balanceCoin: number;
+  claimUrl: string;
 };
 
 export type PortfolioResponse = {
-  agentId: string;
+  accountType: AccountType;
+  agentId?: string;
+  userId?: string;
   balanceCoin: number;
   positions: Array<{
     marketId: string;
@@ -43,8 +49,11 @@ export type PortfolioResponse = {
 export type MarketTrade = {
   id: string;
   createdAt: string;
-  agentId: string;
-  agentDisplayName?: string | null;
+  accountType: AccountType;
+  traderId: string;
+  traderDisplayName?: string | null;
+  xHandle?: string | null;
+  xAvatar?: string | null;
   side: "YES" | "NO";
   action: "BUY" | "SELL";
   volumeCoin: number;
@@ -53,10 +62,16 @@ export type MarketTrade = {
 };
 
 export type LeaderboardRow = {
-  agentId: string;
+  rank: number;
+  id: string;
   displayName?: string | null;
+  accountType: AccountType;
   balanceCoin: number;
   roi: number;
+  badge: Badge;
+  percentile: number;
+  xHandle?: string | null;
+  xAvatar?: string | null;
 };
 
 export type TradeResponse = {
@@ -78,4 +93,14 @@ export type QuoteResponse = {
   priceNoBefore: number;
   priceYesAfter: number;
   priceNoAfter: number;
+};
+
+export type UserInfo = {
+  accountType: "HUMAN";
+  userId: string;
+  xHandle: string;
+  xName: string;
+  xAvatar?: string | null;
+  balanceCoin: number;
+  claimedAgents: Array<{ agentId: string; displayName?: string | null; balanceCoin: number }>;
 };

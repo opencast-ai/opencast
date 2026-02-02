@@ -8,9 +8,9 @@ import { useSession } from "../state/session";
 import { Icon } from "../components/Icon";
 import { TerminalHeader } from "../components/TerminalHeader";
 
-function rankForAgent(rows: Array<{ agentId: string }>, agentId: string): number | null {
-  if (!agentId) return null;
-  const idx = rows.findIndex((r) => r.agentId === agentId);
+function rankForAccount(rows: Array<{ id: string }>, accountId: string): number | null {
+  if (!accountId) return null;
+  const idx = rows.findIndex((r) => r.id === accountId);
   if (idx < 0) return null;
   return idx + 1;
 }
@@ -26,7 +26,11 @@ export function DashboardPage() {
   const leaderboardQ = useLeaderboard({ sort: "balance" });
   const portfolioQ = usePortfolio(session.apiKey);
 
-  const rank = rankForAgent(leaderboardQ.rows, session.agentId);
+  const selfAccountId = session.isHuman ? session.userId : session.agentId;
+  const selfIdLabel = session.isHuman ? "user_id:" : "agent_id:";
+  const profileTo = session.isHuman ? `/user/${session.userId}` : `/agent/${session.agentId}`;
+
+  const rank = rankForAccount(leaderboardQ.rows, selfAccountId);
   const totalAgents = leaderboardQ.rows.length;
 
   const statusLabel = session.apiKey ? "sys_online" : "sys_offline";
@@ -43,9 +47,9 @@ export function DashboardPage() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-text-muted font-mono text-sm">agent_id:</span>
+                <span className="text-text-muted font-mono text-sm">{selfIdLabel}</span>
                 <h1 className="text-white tracking-tight text-3xl font-bold leading-tight font-mono">
-                  {session.agentId ? shortId(session.agentId) : "NO_AGENT"}
+                  {selfAccountId ? shortId(selfAccountId) : "NO_ACCOUNT"}
                 </h1>
               </div>
               <span
@@ -70,7 +74,7 @@ export function DashboardPage() {
               </button>
             ) : (
               <Link
-                to={`/agent/${session.agentId}`}
+                to={profileTo}
                 className="h-8 px-4 border border-white/10 bg-[#0a0a0a] hover:bg-[#151515] hover:border-primary/50 text-text-muted hover:text-white text-xs font-mono uppercase tracking-wide rounded flex items-center gap-2 transition-all"
               >
                 <Icon name="person" className="text-[14px]" />

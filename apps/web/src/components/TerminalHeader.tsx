@@ -4,8 +4,9 @@ import { shortId } from "../lib/format";
 
 import { Icon } from "./Icon";
 
-export function TerminalHeader(props: { activePath: "/dashboard" | "/markets" | "/leaderboard" | "/config" | "/agent" }) {
+export function TerminalHeader(props: { activePath: string }) {
   const session = useSession();
+  const profileTo = session.isHuman ? `/user/${session.userId}` : `/agent/${session.agentId}`;
 
   return (
     <div className="border-b border-white/10 bg-bg-terminal sticky top-0 z-50 backdrop-blur-md">
@@ -79,16 +80,34 @@ export function TerminalHeader(props: { activePath: "/dashboard" | "/markets" | 
             </div>
 
             <div className="flex gap-3 items-center">
-              {!session.apiKey ? (
-                <button
-                  className="hidden sm:flex h-8 px-4 bg-primary hover:bg-red-500 transition-colors items-center justify-center rounded text-black text-xs font-bold leading-normal shadow-glow uppercase font-mono tracking-wider"
-                  onClick={() => void session.registerAgent()}
+              {!session.isLoggedIn ? (
+                <Link
+                  to="/login"
+                  className="hidden sm:flex h-8 px-4 bg-white/10 hover:bg-white/20 border border-white/20 transition-colors items-center justify-center rounded text-white text-xs font-bold leading-normal uppercase font-mono tracking-wider gap-2"
                 >
-                  Initialize Agent
-                </button>
+                  <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  Login
+                </Link>
+              ) : session.isHuman ? (
+                <Link
+                  to={profileTo}
+                  className="hidden sm:flex h-8 px-3 border border-accent-blue/30 bg-accent-blue/10 hover:bg-accent-blue/15 text-white items-center justify-center rounded text-xs font-bold shadow-glow-sm font-mono gap-2"
+                  title={`@${session.xHandle}`}
+                >
+                  {session.xAvatar ? (
+                    <img src={session.xAvatar} alt="" className="size-5 rounded-full" />
+                  ) : (
+                    <span className="size-5 rounded-full bg-accent-blue/20 flex items-center justify-center text-[10px]">
+                      H
+                    </span>
+                  )}
+                  @{session.xHandle}
+                </Link>
               ) : (
                 <Link
-                  to={`/agent/${session.agentId}`}
+                  to={profileTo}
                   className="hidden sm:flex h-8 px-3 border border-primary/30 bg-primary/10 hover:bg-primary/15 text-white items-center justify-center rounded text-xs font-bold shadow-glow-sm font-mono"
                   title={session.agentId}
                 >
@@ -100,9 +119,20 @@ export function TerminalHeader(props: { activePath: "/dashboard" | "/markets" | 
                 <Icon name="notifications" className="text-[18px]" />
                 <span className="absolute top-1.5 right-2 size-1.5 bg-primary rounded-full animate-pulse shadow-glow"></span>
               </button>
-              <div className="size-8 bg-surface-terminal border border-white/10 text-text-muted flex items-center justify-center text-xs font-bold rounded-sm font-mono">
-                USR
-              </div>
+              <Link
+                to={session.isLoggedIn ? profileTo : "/login"}
+                className="size-8 bg-surface-terminal border border-white/10 text-text-muted flex items-center justify-center text-xs font-bold rounded-sm font-mono hover:border-white/30 transition-colors overflow-hidden"
+              >
+                {session.xAvatar ? (
+                  <img src={session.xAvatar} alt="" className="size-full object-cover" />
+                ) : session.isHuman ? (
+                  "H"
+                ) : session.isAgent ? (
+                  "AG"
+                ) : (
+                  "?"
+                )}
+              </Link>
             </div>
           </div>
         </header>
