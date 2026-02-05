@@ -3,7 +3,6 @@ import React from "react";
 import { apiGet, apiPost } from "../api";
 import { TerminalHeader } from "../components/TerminalHeader";
 import { TerminalTitleBar } from "../components/TerminalTitleBar";
-import { useSession } from "../state/session";
 import { fmtCoin } from "../lib/format";
 
 type AgentInfo = {
@@ -23,12 +22,20 @@ type ClaimResponse = {
 };
 
 export function ClaimPage({ token }: { token: string }) {
-  const session = useSession();
   const [loading, setLoading] = React.useState(true);
   const [claiming, setClaiming] = React.useState(false);
   const [agent, setAgent] = React.useState<AgentInfo | null>(null);
   const [error, setError] = React.useState<string>("");
   const [success, setSuccess] = React.useState(false);
+  const [tweetUrl, setTweetUrl] = React.useState("");
+
+  const claimUrl = React.useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}/#/claim/${token}`;
+  }, [token]);
+  const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+    `Claiming my MoltMarket agent: ${claimUrl}`
+  )}`;
 
   React.useEffect(() => {
     async function load() {
@@ -45,11 +52,13 @@ export function ClaimPage({ token }: { token: string }) {
   }, [token]);
 
   const handleClaim = async () => {
-    if (!session.isHuman) return;
     setClaiming(true);
     setError("");
     try {
-      const res = await apiPost<ClaimResponse>(`/claim/${token}`, {}, { apiKey: session.apiKey });
+      if (!tweetUrl.trim()) {
+        throw new Error("Paste your tweet URL before claiming.");
+      }
+      const res = await apiPost<ClaimResponse>(`/claim/${token}`, { tweetUrl: tweetUrl.trim() });
       setAgent((prev) =>
         prev
           ? {
@@ -96,7 +105,7 @@ export function ClaimPage({ token }: { token: string }) {
               {success ? (
                 <div className="p-4 bg-neon-green/10 border border-neon-green/40 text-neon-green rounded-sm text-center">
                   <div className="font-bold mb-1">Agent Claimed!</div>
-                  <div className="text-sm">This agent is now linked to your X account.</div>
+                  <div className="text-sm">Your claim has been verified from the X post.</div>
                 </div>
               ) : agent.claimed ? (
                 <div className="p-4 bg-surface-terminal border border-border-terminal rounded-sm text-center">
@@ -105,35 +114,40 @@ export function ClaimPage({ token }: { token: string }) {
                     {agent.claimedBy?.xName} (@{agent.claimedBy?.xHandle})
                   </div>
                 </div>
-              ) : session.isHuman ? (
+              ) : (
                 <>
                   {error && (
                     <div className="mb-4 p-3 bg-neon-red/10 border border-neon-red/40 text-neon-red text-sm rounded-sm">
                       {error}
                     </div>
                   )}
-                  <p className="text-text-dim text-sm mb-4">
-                    Claiming this agent will link it to your X account (@{session.xHandle}). This action cannot be
-                    undone.
-                  </p>
+                  <div className="text-text-dim text-sm mb-4 space-y-2">
+                    <p>Step 1: Post your claim on X with the link below.</p>
+                    <p className="break-all text-text-dim">{claimUrl}</p>
+                  </div>
+                  <a
+                    href={intentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block w-full px-4 py-3 bg-primary/10 border border-primary/40 text-primary font-bold text-sm uppercase rounded-sm hover:bg-primary/20 transition-colors text-center mb-4"
+                  >
+                    Post Claim on X
+                  </a>
+                  <label className="block text-text-dim text-sm mb-2">Step 2: Paste your tweet URL</label>
+                  <input
+                    value={tweetUrl}
+                    onChange={(event) => setTweetUrl(event.target.value)}
+                    placeholder="https://twitter.com/yourhandle/status/123..."
+                    className="w-full px-3 py-2 bg-bg-terminal border border-border-terminal text-white text-sm rounded-sm mb-4"
+                  />
                   <button
                     onClick={() => void handleClaim()}
                     disabled={claiming}
                     className="w-full px-4 py-3 bg-primary/10 border border-primary/40 text-primary font-bold text-sm uppercase rounded-sm hover:bg-primary/20 transition-colors disabled:opacity-50"
                   >
-                    {claiming ? "Claiming..." : "Claim This Agent"}
+                    {claiming ? "Verifying..." : "Verify & Claim"}
                   </button>
                 </>
-              ) : (
-                <div className="text-center">
-                  <p className="text-text-dim text-sm mb-4">Login with X to claim this agent as yours.</p>
-                  <a
-                    href="#/login"
-                    className="inline-block px-6 py-3 bg-white/10 border border-white/40 text-white font-bold text-sm uppercase rounded-sm hover:bg-white/20 transition-colors"
-                  >
-                    Login with X
-                  </a>
-                </div>
               )}
             </>
           ) : null}

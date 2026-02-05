@@ -3,8 +3,84 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { prisma } from "../db.js";
-import { hashApiKey } from "../auth.js";
-import { microsToCoinNumber } from "../constants.js";
+import { microsToCoinNumber, STARTING_BALANCE_MICROS } from "../constants.js";
+
+const TWEET_HOSTS = new Set(["twitter.com", "www.twitter.com", "x.com", "www.x.com"]);
+
+type TweetProof = {
+  handle: string;
+  displayName: string;
+  url: string;
+};
+
+function parseTweetUrl(rawUrl: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+
+  if (!TWEET_HOSTS.has(parsed.hostname)) return null;
+
+  const parts = parsed.pathname.split("/").filter(Boolean);
+  const statusIndex = parts.indexOf("status");
+  if (statusIndex <= 0 || statusIndex + 1 >= parts.length) return null;
+
+  const handle: string = parts[statusIndex - 1] ?? "";
+  const tweetId: string = parts[statusIndex + 1] ?? "";
+  if (!handle || !/^[A-Za-z0-9_]+$/.test(handle)) return null;
+  if (!tweetId || !/^[0-9]+$/.test(tweetId)) return null;
+
+  return {
+    handle,
+    tweetId,
+    canonicalUrl: `https://twitter.com/${handle}/status/${tweetId}`
+  };
+}
+
+async function verifyTweetProof(tweetUrl: string, claimToken: string): Promise<TweetProof> {
+  const parsed = parseTweetUrl(tweetUrl);
+  if (!parsed) {
+    throw Object.assign(new Error("Tweet URL must be a valid x.com/twitter.com status link."), { statusCode: 400 });
+  }
+
+  const oembedUrl = new URL("https://publish.twitter.com/oembed");
+  oembedUrl.searchParams.set("url", parsed.canonicalUrl);
+  oembedUrl.searchParams.set("omit_script", "1");
+
+  const response = await fetch(oembedUrl.toString());
+  if (!response.ok) {
+    throw Object.assign(new Error("Unable to verify tweet. Please check the link and try again."), { statusCode: 400 });
+  }
+
+  const data = z
+    .object({
+      author_name: z.string(),
+      author_url: z.string(),
+      html: z.string()
+    })
+    .parse(await response.json());
+
+  const authorUrl = new URL(data.author_url);
+  const authorHandle = authorUrl.pathname.replace("/", "").split("/")[0] ?? "";
+  if (!authorHandle || authorHandle.toLowerCase() !== parsed.handle.toLowerCase()) {
+    throw Object.assign(new Error("Tweet author does not match the provided URL."), { statusCode: 400 });
+  }
+
+  const htmlLower = data.html.toLowerCase();
+  const tokenLower = claimToken.toLowerCase();
+  const claimMarker = `/claim/${tokenLower}`;
+  if (!htmlLower.includes(tokenLower) && !htmlLower.includes(claimMarker)) {
+    throw Object.assign(new Error("Tweet must include your claim link or token."), { statusCode: 400 });
+  }
+
+  return {
+    handle: parsed.handle,
+    displayName: data.author_name,
+    url: parsed.canonicalUrl
+  };
+}
 
 export async function registerClaimRoutes(app: FastifyInstance) {
   app.get("/claim/:token", async (req, reply) => {
@@ -47,20 +123,11 @@ export async function registerClaimRoutes(app: FastifyInstance) {
   app.post("/claim/:token", async (req, reply) => {
     const params = z.object({ token: z.string().min(1) }).parse(req.params);
 
-    const apiKey = req.headers["x-api-key"];
-    if (typeof apiKey !== "string" || apiKey.length < 10) {
-      return reply.status(401).send({ error: { message: "Missing or invalid x-api-key. Login with X first." } });
-    }
-
-    const keyHash = hashApiKey(apiKey);
-    const keyMatch = await prisma.apiKey.findFirst({
-      where: { keyHash, revokedAt: null, userId: { not: null } },
-      select: { userId: true }
-    });
-
-    if (!keyMatch || !keyMatch.userId) {
-      return reply.status(401).send({ error: { message: "API key must belong to a human account. Login with X first." } });
-    }
+    const body = z
+      .object({
+        tweetUrl: z.string().url()
+      })
+      .parse(req.body);
 
     const agent = await prisma.agent.findUnique({
       where: { claimToken: params.token },
@@ -80,10 +147,31 @@ export async function registerClaimRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: { message: "Agent has already been claimed" } });
     }
 
+    const proof = await verifyTweetProof(body.tweetUrl, params.token);
+
+    const normalizedHandle = proof.handle.toLowerCase();
+
+    let user = await prisma.user.findFirst({
+      where: { xHandle: normalizedHandle }
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          xId: `x_${normalizedHandle}`,
+          xHandle: normalizedHandle,
+          xName: proof.displayName || normalizedHandle,
+          xAvatar: null,
+          xVerified: false,
+          balanceMicros: STARTING_BALANCE_MICROS
+        }
+      });
+    }
+
     const updatedAgent = await prisma.agent.update({
       where: { id: agent.id },
       data: {
-        claimedById: keyMatch.userId,
+        claimedById: user.id,
         claimedAt: new Date()
       },
       select: {
