@@ -1,0 +1,15 @@
+.git
+.gitignore
+.DS_Store
+node_modules
+**/node_modules
+apps/web/node_modules
+apps/web/dist
+apps/web/.vercel
+**/*.log
+.env
+.env.*
+pnpm-debug.log
+coverage
+dist
+**/dist
