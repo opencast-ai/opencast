@@ -3,19 +3,24 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { prisma } from "../db.js";
+import { syncPolymarketMarkets } from "../jobs/syncPolymarket.js";
+
+function requireAdmin(req: { headers: Record<string, string | string[] | undefined> }) {
+  const configured = process.env.ADMIN_TOKEN;
+  if (!configured && process.env.NODE_ENV === "production") {
+    throw Object.assign(new Error("Admin disabled"), { statusCode: 403 });
+  }
+  if (configured) {
+    const token = req.headers["x-admin-token"];
+    if (typeof token !== "string" || token !== configured) {
+      throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
+    }
+  }
+}
 
 export async function registerAdminRoutes(app: FastifyInstance) {
   app.post("/admin/resolve", async (req) => {
-    const configured = process.env.ADMIN_TOKEN;
-    if (!configured && process.env.NODE_ENV === "production") {
-      throw Object.assign(new Error("Admin disabled"), { statusCode: 403 });
-    }
-    if (configured) {
-      const token = req.headers["x-admin-token"];
-      if (typeof token !== "string" || token !== configured) {
-        throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
-      }
-    }
+    requireAdmin(req);
 
     const body = z
       .object({
@@ -64,5 +69,11 @@ export async function registerAdminRoutes(app: FastifyInstance) {
     });
 
     return { ok: true };
+  });
+
+  app.post("/admin/sync-polymarket", async (req) => {
+    requireAdmin(req);
+    const result = await syncPolymarketMarkets();
+    return result;
   });
 }
