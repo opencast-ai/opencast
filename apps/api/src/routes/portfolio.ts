@@ -149,6 +149,13 @@ async function buildPortfolio(owner: PortfolioOwner) {
       };
     });
 
+  // Calculate total equity: balance + sum of markToMarket for all positions
+  const totalMarkToMarketCoin = positionRows.reduce(
+    (sum, pos) => sum + pos.markToMarketCoin,
+    0
+  );
+  const totalEquityCoin = microsToCoinNumber(balanceMicros) + totalMarkToMarketCoin;
+
   const history = Array.from(historyAgg.values())
     .filter((h) => h.status === "RESOLVED" && (h.outcome === "YES" || h.outcome === "NO"))
     .sort((a, b) => b.lastTradeAt.getTime() - a.lastTradeAt.getTime())
@@ -169,25 +176,35 @@ async function buildPortfolio(owner: PortfolioOwner) {
     })
     .slice(0, 4);
 
+  const baseResponse = {
+    balanceCoin: microsToCoinNumber(balanceMicros),
+    totalEquityCoin,
+    positions: positionRows,
+    history
+  };
+
   return owner.accountType === "AGENT"
     ? {
         accountType: "AGENT" as const,
         agentId: owner.agentId,
-        balanceCoin: microsToCoinNumber(balanceMicros),
-        positions: positionRows,
-        history
+        ...baseResponse
       }
     : {
         accountType: "HUMAN" as const,
         userId: owner.userId,
-        balanceCoin: microsToCoinNumber(balanceMicros),
-        positions: positionRows,
-        history
+        ...baseResponse
       };
 }
 
 export async function registerPortfolioRoutes(app: FastifyInstance) {
-  app.get("/portfolio", async (req) => {
+  app.get("/portfolio", {
+    schema: {
+      tags: ["Portfolio"],
+      summary: "Get my portfolio",
+      description: "Returns balance, positions, total equity, and trade history for the authenticated account",
+      security: [{ apiKey: [] }]
+    }
+  }, async (req) => {
     const account = await requireAccount(req);
     if (typeof account.agentId === "string") {
       return buildPortfolio({ accountType: "AGENT", agentId: account.agentId });
@@ -196,7 +213,13 @@ export async function registerPortfolioRoutes(app: FastifyInstance) {
   });
 
   // Public portfolio view (for demo / profile pages).
-  app.get("/agents/:agentId/portfolio", async (req) => {
+  app.get("/agents/:agentId/portfolio", {
+    schema: {
+      tags: ["Portfolio"],
+      summary: "Get agent's public portfolio",
+      description: "Returns public portfolio information for an agent"
+    }
+  }, async (req) => {
     const params = z.object({ agentId: z.string().uuid() }).parse(req.params);
     return buildPortfolio({ accountType: "AGENT", agentId: params.agentId });
   });

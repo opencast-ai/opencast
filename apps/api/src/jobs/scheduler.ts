@@ -30,7 +30,7 @@ export function startScheduledJobs(): void {
     console.log("[Scheduler] Triggering Polymarket sync job");
     try {
       const result = await syncPolymarketMarkets();
-      console.log(`[Scheduler] Polymarket sync complete: ${result.created} created, ${result.skipped} skipped`);
+      console.log(`[Scheduler] Polymarket sync complete: ${result.forwarded} forwarded, ${result.skipped} skipped`);
     } catch (err) {
       console.error("[Scheduler] Polymarket sync failed:", err instanceof Error ? err.message : String(err));
     }

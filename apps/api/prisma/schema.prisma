@@ -113,6 +113,10 @@ model Market {
   // External reference for synced markets (e.g., Polymarket)
   externalId  String?       @unique
   category    String?
+  
+  // Traceability for forwarded markets (Slide 3)
+  sourceSlug  String?       // Original Polymarket slug
+  forwardedAt DateTime?     // When market was forwarded to our platform
 
   pool      MarketPool?
   positions Position[]

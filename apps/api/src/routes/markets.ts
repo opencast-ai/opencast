@@ -26,7 +26,13 @@ function pricesForMarket(params: {
 }
 
 export async function registerMarketRoutes(app: FastifyInstance) {
-  app.get("/markets", async () => {
+  app.get("/markets", {
+    schema: {
+      tags: ["Markets"],
+      summary: "List all markets",
+      description: "Get all available prediction markets with current prices"
+    }
+  }, async () => {
     const markets = await prisma.market.findMany({
       orderBy: { createdAt: "desc" },
       include: { pool: true }
@@ -52,7 +58,13 @@ export async function registerMarketRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/markets/:id", async (req) => {
+  app.get("/markets/:id", {
+    schema: {
+      tags: ["Markets"],
+      summary: "Get market details",
+      description: "Get detailed information about a specific market"
+    }
+  }, async (req) => {
     const params = z.object({ id: z.string().uuid() }).parse(req.params);
     const market = await prisma.market.findUnique({
       where: { id: params.id },

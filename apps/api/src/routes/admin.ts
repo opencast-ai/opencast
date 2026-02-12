@@ -4,6 +4,8 @@ import type { FastifyInstance } from "fastify";
 
 import { prisma } from "../db.js";
 import { syncPolymarketMarkets } from "../jobs/syncPolymarket.js";
+import { forwardMarketsBySlugs, syncSettlementStatus } from "../services/polymarket.js";
+import { settleMarket } from "../services/settlement.js";
 
 function requireAdmin(req: { headers: Record<string, string | string[] | undefined> }) {
   const configured = process.env.ADMIN_TOKEN;
@@ -29,51 +31,135 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       })
       .parse(req.body);
 
-    const market = await prisma.market.findUnique({
-      where: { id: body.marketId },
-      include: { positions: true }
-    });
-    if (!market) throw Object.assign(new Error("Market not found"), { statusCode: 404 });
-    if (market.status !== "OPEN") throw Object.assign(new Error("Market not open"), { statusCode: 400 });
+    // Use shared settlement service (idempotent)
+    const result = await settleMarket(body.marketId, body.outcome);
 
-    await prisma.$transaction(async (tx) => {
-      for (const pos of market.positions) {
-        const payout = body.outcome === "YES" ? pos.yesSharesMicros : pos.noSharesMicros;
-        if (payout > 0n) {
-          if (pos.agentId) {
-            await tx.agent.update({
-              where: { id: pos.agentId },
-              data: { balanceMicros: { increment: payout } }
-            });
-          } else if (pos.userId) {
-            await tx.user.update({
-              where: { id: pos.userId },
-              data: { balanceMicros: { increment: payout } }
-            });
-          }
-        }
+    if (!result.success) {
+      throw Object.assign(new Error(result.error || "Settlement failed"), { statusCode: 400 });
+    }
 
-        await tx.position.update({
-          where: { id: pos.id },
-          data: { yesSharesMicros: 0n, noSharesMicros: 0n }
-        });
-      }
+    return {
+      ok: true,
+      marketId: result.marketId,
+      outcome: result.outcome,
+      payouts: result.payouts.map(p => ({
+        ...p,
+        amountCoin: Number(p.amountMicros) / 1_000_000
+      }))
+    };
+  });
 
-      await tx.market.update({
-        where: { id: body.marketId },
-        data: {
-          status: "RESOLVED",
-          outcome: body.outcome
-        }
-      });
-    });
+  /**
+   * POST /admin/markets/settle
+   * Manual settlement endpoint (alternative to /admin/resolve)
+   * Settles a specific market with given outcome
+   */
+  app.post("/admin/markets/settle", {
+    schema: {
+      tags: ["Admin"],
+      summary: "Settle a market (admin only)",
+      description: "Manually resolve a market and pay out winners",
+      security: [{ adminToken: [] }]
+    }
+  }, async (req) => {
+    requireAdmin(req);
 
-    return { ok: true };
+    const body = z
+      .object({
+        marketId: z.string().uuid(),
+        outcome: z.enum(["YES", "NO"])
+      })
+      .parse(req.body);
+
+    const result = await settleMarket(body.marketId, body.outcome);
+
+    if (!result.success) {
+      throw Object.assign(new Error(result.error || "Settlement failed"), { statusCode: 400 });
+    }
+
+    return {
+      success: true,
+      marketId: result.marketId,
+      outcome: result.outcome,
+      payouts: result.payouts.map(p => ({
+        ...p,
+        amountCoin: Number(p.amountMicros) / 1_000_000
+      })),
+      alreadyResolved: result.payouts.length === 0 && result.error?.includes("already resolved")
+    };
   });
 
   app.post("/admin/sync-polymarket", async (req) => {
     requireAdmin(req);
     const result = await syncPolymarketMarkets();
     return result;
+  });
+
+  /**
+   * POST /admin/markets/forward
+   * Manually forward markets from Polymarket by array of slugs
+   * Accepts: { slugs: ["will-bitcoin-hit-100k", "..."] }
+   * Returns: { forwarded: number, skipped: number, errors: string[] }
+   */
+  app.post("/admin/markets/forward", {
+    schema: {
+      tags: ["Admin"],
+      summary: "Forward markets from Polymarket (admin only)",
+      description: "Import markets from Polymarket by their slugs",
+      security: [{ adminToken: [] }]
+    }
+  }, async (req) => {
+    requireAdmin(req);
+
+    const body = z
+      .object({
+        slugs: z.array(z.string().min(1)).min(1).max(10)
+      })
+      .parse(req.body);
+
+    const result = await forwardMarketsBySlugs(body.slugs);
+    return result;
+  });
+
+  /**
+   * POST /admin/markets/sync-status
+   * Sync settlement status from Polymarket for forwarded markets
+   * Polls Polymarket status and AUTO-TRIGGERS settlement for resolved markets
+   * Returns: { checked: number, updated: number, resolved: number, errors: string[], settlements: [...] }
+   */
+  app.post("/admin/markets/sync-status", async (req) => {
+    requireAdmin(req);
+
+    const { result, resolvedMarkets } = await syncSettlementStatus();
+
+    // Auto-trigger settlement for resolved markets
+    const settlements = [];
+    for (const { marketId, outcome } of resolvedMarkets) {
+      try {
+        const settlementResult = await settleMarket(marketId, outcome);
+        settlements.push({
+          marketId,
+          outcome,
+          success: settlementResult.success,
+          payouts: settlementResult.payouts.map(p => ({
+            ...p,
+            amountCoin: Number(p.amountMicros) / 1_000_000
+          })),
+          error: settlementResult.error
+        });
+      } catch (err) {
+        settlements.push({
+          marketId,
+          outcome,
+          success: false,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+
+    return {
+      ...result,
+      settlements
+    };
   });
 }

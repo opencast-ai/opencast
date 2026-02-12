@@ -542,7 +542,7 @@ describe("Shared Account Auth Resolution", () => {
     const user = await prisma.user.create({
       data: {
         walletAddress: normalizeAddress(TEST_WALLET.address),
-        xId: "test",
+        xId: "test_auth_resolve",
         xHandle: "test",
         xName: "Test",
         balanceMicros: 500000000n // 500 coins

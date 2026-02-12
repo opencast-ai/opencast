@@ -14,7 +14,13 @@ function generateClaimToken(): string {
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "https://molt.market";
 
 export async function registerAgentRoutes(app: FastifyInstance) {
-  app.post("/agents/register", async (req) => {
+  app.post("/agents/register", {
+    schema: {
+      tags: ["Agents"],
+      summary: "Register a new agent",
+      description: "Create a new agent and receive API key and claim URL"
+    }
+  }, async (req) => {
     const body = z
       .object({
         displayName: z.string().min(1).max(64).optional()
@@ -52,7 +58,13 @@ export async function registerAgentRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get("/agents/:id", async (req, reply) => {
+  app.get("/agents/:id", {
+    schema: {
+      tags: ["Agents"],
+      summary: "Get agent by ID",
+      description: "Retrieve public information about an agent"
+    }
+  }, async (req, reply) => {
     const params = z.object({ id: z.string().uuid() }).parse(req.params);
 
     const agent = await prisma.agent.findUnique({

@@ -91,7 +91,13 @@ export async function registerWeb3AuthRoutes(app: FastifyInstance) {
    * POST /auth/web3/nonce
    * Issue a short-lived nonce for the wallet to sign
    */
-  app.post("/auth/web3/nonce", async (req, reply) => {
+  app.post("/auth/web3/nonce", {
+    schema: {
+      tags: ["Auth"],
+      summary: "Get nonce for wallet signature",
+      description: "Request a nonce that must be signed by the wallet to authenticate"
+    }
+  }, async (req, reply) => {
     const body = z
       .object({
         walletAddress: z.string().refine(isValidEthereumAddress, {
@@ -121,7 +127,13 @@ export async function registerWeb3AuthRoutes(app: FastifyInstance) {
    * POST /auth/web3/verify
    * Verify signed message and issue API key
    */
-  app.post("/auth/web3/verify", async (req, reply) => {
+  app.post("/auth/web3/verify", {
+    schema: {
+      tags: ["Auth"],
+      summary: "Verify signature and get API key",
+      description: "Submit the signed nonce to receive an API key for authenticated requests"
+    }
+  }, async (req, reply) => {
     const body = z
       .object({
         nonceId: z.string(),
@@ -222,7 +234,14 @@ export async function registerWeb3AuthRoutes(app: FastifyInstance) {
    * GET /auth/me
    * Get current authenticated user profile
    */
-  app.get("/auth/me", async (req, reply) => {
+  app.get("/auth/me", {
+    schema: {
+      tags: ["Auth"],
+      summary: "Get current user profile",
+      description: "Returns the authenticated user's profile information",
+      security: [{ apiKey: [] }]
+    }
+  }, async (req, reply) => {
     const apiKey = req.headers["x-api-key"];
     if (typeof apiKey !== "string" || apiKey.length < 10) {
       return reply.status(401).send({
