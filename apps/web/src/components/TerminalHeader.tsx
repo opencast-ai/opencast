@@ -74,6 +74,7 @@ export function TerminalHeader(props: { activePath: string }) {
                     ? "text-primary font-bold leading-normal border-b border-primary"
                     : "text-text-muted hover:text-white transition-colors leading-normal"
                 }
+                title="Agent Registry Guide"
               >
                 /config
               </Link>
@@ -83,10 +84,10 @@ export function TerminalHeader(props: { activePath: string }) {
               {!session.isLoggedIn ? (
                 <Link
                   to="/login"
-                  className="hidden sm:flex h-8 px-4 bg-white/10 hover:bg-white/20 border border-white/20 transition-colors items-center justify-center rounded text-white text-xs font-bold leading-normal uppercase font-mono tracking-wider gap-2"
+                  className="hidden sm:flex h-8 px-4 bg-primary/10 hover:bg-primary/20 border border-primary/40 transition-colors items-center justify-center rounded text-primary text-xs font-bold leading-normal uppercase font-mono tracking-wider gap-2"
                 >
                   <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10zm-10 8c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
                   </svg>
                   Login
                 </Link>
@@ -94,16 +95,14 @@ export function TerminalHeader(props: { activePath: string }) {
                 <Link
                   to={profileTo}
                   className="hidden sm:flex h-8 px-3 border border-accent-blue/30 bg-accent-blue/10 hover:bg-accent-blue/15 text-white items-center justify-center rounded text-xs font-bold shadow-glow-sm font-mono gap-2"
-                  title={`@${session.xHandle}`}
+                  title={session.walletAddress || session.userId}
                 >
-                  {session.xAvatar ? (
-                    <img src={session.xAvatar} alt="" className="size-5 rounded-full" />
-                  ) : (
-                    <span className="size-5 rounded-full bg-accent-blue/20 flex items-center justify-center text-[10px]">
-                      H
-                    </span>
-                  )}
-                  @{session.xHandle}
+                  <span className="size-5 rounded-full bg-accent-blue/20 flex items-center justify-center text-[10px]">
+                    H
+                  </span>
+                  {session.walletAddress
+                    ? `${session.walletAddress.slice(0, 6)}...${session.walletAddress.slice(-4)}`
+                    : shortId(session.userId)}
                 </Link>
               ) : (
                 <Link
@@ -123,9 +122,7 @@ export function TerminalHeader(props: { activePath: string }) {
                 to={session.isLoggedIn ? profileTo : "/login"}
                 className="size-8 bg-surface-terminal border border-white/10 text-text-muted flex items-center justify-center text-xs font-bold rounded-sm font-mono hover:border-white/30 transition-colors overflow-hidden"
               >
-                {session.xAvatar ? (
-                  <img src={session.xAvatar} alt="" className="size-full object-cover" />
-                ) : session.isHuman ? (
+                {session.isHuman ? (
                   "H"
                 ) : session.isAgent ? (
                   "AG"

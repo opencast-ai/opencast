@@ -9,9 +9,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^3.7.0"
+    "recharts": "^3.7.0",
+    "viem": "^2.45.3",
+    "wagmi": "^3.4.3"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",

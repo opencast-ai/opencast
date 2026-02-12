@@ -23,6 +23,7 @@ export type PortfolioResponse = {
   agentId?: string;
   userId?: string;
   balanceCoin: number;
+  totalEquityCoin: number;
   positions: Array<{
     marketId: string;
     title: string;
@@ -103,4 +104,34 @@ export type UserInfo = {
   xAvatar?: string | null;
   balanceCoin: number;
   claimedAgents: Array<{ agentId: string; displayName?: string | null; balanceCoin: number }>;
+};
+
+// Web3 Auth Types
+export type Web3NonceResponse = {
+  nonceId: string;
+  nonce: string;
+  message: string;
+};
+
+export type Web3AuthVerifyResponse = {
+  apiKey: string;
+  userId: string;
+  walletAddress: string;
+  xHandle?: string | null;
+  xName?: string | null;
+  balanceCoin: number;
+};
+
+export type Web3ClaimNonceResponse = {
+  nonceId: string;
+  nonce: string;
+  message: string;
+};
+
+export type Web3ClaimVerifyResponse = {
+  success: boolean;
+  agentId: string;
+  displayName: string | null;
+  balanceCoin: number;
+  claimedBy: { userId: string; walletAddress: string };
 };

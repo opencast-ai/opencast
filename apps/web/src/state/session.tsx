@@ -2,7 +2,7 @@ import React from "react";
 
 import { apiPost } from "../api";
 import { API_URL } from "../api";
-import type { RegisterResponse, AccountType } from "../types";
+import type { RegisterResponse, AccountType, Web3AuthVerifyResponse } from "../types";
 
 type SessionState = {
   apiKey: string;
@@ -12,6 +12,7 @@ type SessionState = {
   xHandle: string;
   xName: string;
   xAvatar: string;
+  walletAddress: string;
   adminToken: string;
 
   setApiKey: (v: string) => void;
@@ -19,6 +20,7 @@ type SessionState = {
 
   registerAgent: () => Promise<void>;
   loginWithX: () => void;
+  loginWithWallet: (walletAddress: string) => Promise<{ nonceId: string; nonce: string; message: string }>;
   handleAuthCallback: (params: {
     apiKey: string;
     userId: string;
@@ -49,6 +51,7 @@ function saveLocal(key: string, value: string) {
     if (value) localStorage.setItem(key, value);
     else localStorage.removeItem(key);
   } catch {
+    // ignore
   }
 }
 
@@ -63,6 +66,7 @@ export function SessionProvider(props: { children: React.ReactNode }) {
   const [xHandle, setXHandleState] = React.useState<string>(() => loadLocal("molt.xHandle"));
   const [xName, setXNameState] = React.useState<string>(() => loadLocal("molt.xName"));
   const [xAvatar, setXAvatarState] = React.useState<string>(() => loadLocal("molt.xAvatar"));
+  const [walletAddress, setWalletAddressState] = React.useState<string>(() => loadLocal("molt.walletAddress"));
   const [adminToken, setAdminToken] = React.useState<string>("");
 
   const setApiKey = React.useCallback((v: string) => {
@@ -103,6 +107,11 @@ export function SessionProvider(props: { children: React.ReactNode }) {
     saveLocal("molt.xAvatar", v);
   }, []);
 
+  const setWalletAddress = React.useCallback((v: string) => {
+    setWalletAddressState(v);
+    saveLocal("molt.walletAddress", v);
+  }, []);
+
   const disconnect = React.useCallback(() => {
     setApiKey("");
     setAgentId("");
@@ -111,8 +120,9 @@ export function SessionProvider(props: { children: React.ReactNode }) {
     setXHandle("");
     setXName("");
     setXAvatar("");
+    setWalletAddress("");
     setAdminToken("");
-  }, [setApiKey, setAgentId, setUserId, setAccountType, setXHandle, setXName, setXAvatar]);
+  }, [setApiKey, setAgentId, setUserId, setAccountType, setXHandle, setXName, setXAvatar, setWalletAddress]);
 
   const registerAgent = React.useCallback(async () => {
     const res = await apiPost<RegisterResponse>("/agents/register", { displayName: "web-agent" });
@@ -121,9 +131,53 @@ export function SessionProvider(props: { children: React.ReactNode }) {
     setAccountType("AGENT");
   }, [setApiKey, setAgentId, setAccountType]);
 
+  // X OAuth - kept but hidden from UI (deprecated for demo)
   const loginWithX = React.useCallback(() => {
     window.location.href = `${API_URL}/oauth/twitter`;
   }, []);
+
+  // Web3 Wallet Auth - new primary auth method
+  const loginWithWallet = React.useCallback(
+    async (walletAddress: string) => {
+      // Step 1: Get nonce
+      const nonceRes = await apiPost<{ nonceId: string; nonce: string; message: string }>("/auth/web3/nonce", {
+        walletAddress
+      });
+
+      // Step 2: Sign message (done by caller using wagmi signMessage)
+      // Step 3: Verify and get API key
+      return nonceRes;
+    },
+    []
+  );
+
+  const completeWalletLogin = React.useCallback(
+    async (params: { nonceId: string; walletAddress: string; signature: string }) => {
+      const res = await apiPost<Web3AuthVerifyResponse>("/auth/web3/verify", {
+        nonceId: params.nonceId,
+        walletAddress: params.walletAddress,
+        signature: params.signature
+      });
+
+      setApiKey(res.apiKey);
+      setUserId(res.userId);
+      setWalletAddress(params.walletAddress);
+      setAccountType("HUMAN");
+
+      // Optionally set X info if provided in response
+      if (res.xHandle) setXHandle(res.xHandle);
+      if (res.xName) setXName(res.xName);
+
+      return res;
+    },
+    [setApiKey, setUserId, setWalletAddress, setAccountType, setXHandle, setXName]
+  );
+
+  // Exposed as part of session for external use
+  const completeWalletLoginRef = React.useRef(completeWalletLogin);
+  React.useEffect(() => {
+    completeWalletLoginRef.current = completeWalletLogin;
+  }, [completeWalletLogin]);
 
   const handleAuthCallback = React.useCallback(
     (params: { apiKey: string; userId: string; xHandle: string; xName: string; xAvatar: string; balanceCoin: string }) => {
@@ -149,17 +203,22 @@ export function SessionProvider(props: { children: React.ReactNode }) {
     xHandle,
     xName,
     xAvatar,
+    walletAddress,
     adminToken,
     setApiKey,
     setAdminToken,
     registerAgent,
     loginWithX,
+    loginWithWallet,
     handleAuthCallback,
     disconnect,
     isLoggedIn,
     isHuman,
-    isAgent
-  };
+    isAgent,
+    // Expose completeWalletLogin via ref pattern
+    completeWalletLogin: (params: { nonceId: string; walletAddress: string; signature: string }) =>
+      completeWalletLoginRef.current(params)
+  } as SessionState & { completeWalletLogin: typeof completeWalletLogin };
 
   return <SessionContext.Provider value={value}>{props.children}</SessionContext.Provider>;
 }
@@ -168,4 +227,10 @@ export function useSession(): SessionState {
   const ctx = React.useContext(SessionContext);
   if (!ctx) throw new Error("useSession must be used within SessionProvider");
   return ctx;
+}
+
+// Hook for completing wallet login (exposed separately)
+export function useCompleteWalletLogin() {
+  const session = useSession();
+  return (session as unknown as { completeWalletLogin: (params: { nonceId: string; walletAddress: string; signature: string }) => Promise<Web3AuthVerifyResponse> }).completeWalletLogin;
 }
