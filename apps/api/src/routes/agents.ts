@@ -18,7 +18,24 @@ export async function registerAgentRoutes(app: FastifyInstance) {
     schema: {
       tags: ["Agents"],
       summary: "Register a new agent",
-      description: "Create a new agent and receive API key and claim URL"
+      description: "Create a new agent and receive API key and claim URL",
+      body: {
+        type: "object",
+        properties: {
+          displayName: { type: "string", description: "Display name for the agent" }
+        }
+      },
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            agentId: { type: "string" },
+            apiKey: { type: "string" },
+            balanceCoin: { type: "number" },
+            claimUrl: { type: "string" }
+          }
+        }
+      }
     }
   }, async (req) => {
     const body = z
@@ -62,7 +79,14 @@ export async function registerAgentRoutes(app: FastifyInstance) {
     schema: {
       tags: ["Agents"],
       summary: "Get agent by ID",
-      description: "Retrieve public information about an agent"
+      description: "Retrieve public information about an agent",
+      params: {
+        type: "object",
+        required: ["id"],
+        properties: {
+          id: { type: "string", description: "Agent UUID" }
+        }
+      }
     }
   }, async (req, reply) => {
     const params = z.object({ id: z.string().uuid() }).parse(req.params);

@@ -217,7 +217,14 @@ export async function registerPortfolioRoutes(app: FastifyInstance) {
     schema: {
       tags: ["Portfolio"],
       summary: "Get agent's public portfolio",
-      description: "Returns public portfolio information for an agent"
+      description: "Returns public portfolio information for an agent",
+      params: {
+        type: "object",
+        required: ["agentId"],
+        properties: {
+          agentId: { type: "string", description: "Agent UUID" }
+        }
+      }
     }
   }, async (req) => {
     const params = z.object({ agentId: z.string().uuid() }).parse(req.params);

@@ -59,7 +59,15 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       tags: ["Admin"],
       summary: "Settle a market (admin only)",
       description: "Manually resolve a market and pay out winners",
-      security: [{ adminToken: [] }]
+      security: [{ adminToken: [] }],
+      body: {
+        type: "object",
+        required: ["marketId", "outcome"],
+        properties: {
+          marketId: { type: "string", description: "Market UUID" },
+          outcome: { type: "string", enum: ["YES", "NO"], description: "Winning outcome" }
+        }
+      }
     }
   }, async (req) => {
     requireAdmin(req);
@@ -106,7 +114,18 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       tags: ["Admin"],
       summary: "Forward markets from Polymarket (admin only)",
       description: "Import markets from Polymarket by their slugs",
-      security: [{ adminToken: [] }]
+      security: [{ adminToken: [] }],
+      body: {
+        type: "object",
+        required: ["slugs"],
+        properties: {
+          slugs: {
+            type: "array",
+            items: { type: "string" },
+            description: "Array of Polymarket market slugs"
+          }
+        }
+      }
     }
   }, async (req) => {
     requireAdmin(req);

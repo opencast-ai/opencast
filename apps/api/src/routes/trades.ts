@@ -9,7 +9,34 @@ export async function registerTradeRoutes(app: FastifyInstance) {
       tags: ["Trading"],
       summary: "Execute a trade",
       description: "Buy YES or NO shares in a market using your balance",
-      security: [{ apiKey: [] }]
+      security: [{ apiKey: [] }],
+      body: {
+        type: "object",
+        required: ["marketId", "outcome", "collateralCoin"],
+        properties: {
+          marketId: { type: "string", description: "Market UUID" },
+          outcome: { type: "string", enum: ["YES", "NO"], description: "Which outcome to buy" },
+          collateralCoin: { type: "number", description: "Amount to spend" }
+        }
+      },
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            tradeId: { type: "string" },
+            feeCoin: { type: "number" },
+            sharesOutCoin: { type: "number" },
+            balanceCoin: { type: "number" },
+            position: {
+              type: "object",
+              properties: {
+                yesSharesCoin: { type: "number" },
+                noSharesCoin: { type: "number" }
+              }
+            }
+          }
+        }
+      }
     }
   }, async (req) => {
     const account = await requireAccount(req);

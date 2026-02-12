@@ -38,7 +38,7 @@ describe("claim routes", () => {
       claimedById: null
     });
 
-    const app = buildServer();
+    const app = await buildServer();
     const response = await app.inject({
       method: "POST",
       url: "/claim/token_123",
@@ -84,7 +84,7 @@ describe("claim routes", () => {
       })
     });
 
-    const app = buildServer();
+    const app = await buildServer();
     const response = await app.inject({
       method: "POST",
       url: `/claim/${token}`,

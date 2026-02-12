@@ -95,7 +95,24 @@ export async function registerWeb3AuthRoutes(app: FastifyInstance) {
     schema: {
       tags: ["Auth"],
       summary: "Get nonce for wallet signature",
-      description: "Request a nonce that must be signed by the wallet to authenticate"
+      description: "Request a nonce that must be signed by the wallet to authenticate",
+      body: {
+        type: "object",
+        required: ["walletAddress"],
+        properties: {
+          walletAddress: { type: "string", description: "Ethereum wallet address (0x...)" }
+        }
+      },
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            nonceId: { type: "string" },
+            nonce: { type: "string" },
+            message: { type: "string" }
+          }
+        }
+      }
     }
   }, async (req, reply) => {
     const body = z
@@ -131,7 +148,31 @@ export async function registerWeb3AuthRoutes(app: FastifyInstance) {
     schema: {
       tags: ["Auth"],
       summary: "Verify signature and get API key",
-      description: "Submit the signed nonce to receive an API key for authenticated requests"
+      description: "Submit the signed nonce to receive an API key for authenticated requests",
+      body: {
+        type: "object",
+        required: ["nonceId", "walletAddress", "signature"],
+        properties: {
+          nonceId: { type: "string", description: "The nonceId from /auth/web3/nonce" },
+          walletAddress: { type: "string", description: "Ethereum wallet address" },
+          signature: { type: "string", description: "EIP-191 signature of the message" },
+          xHandle: { type: "string", description: "Optional X/Twitter handle" },
+          xName: { type: "string", description: "Optional display name" }
+        }
+      },
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            apiKey: { type: "string" },
+            userId: { type: "string" },
+            walletAddress: { type: "string" },
+            xHandle: { type: "string" },
+            xName: { type: "string" },
+            balanceCoin: { type: "number" }
+          }
+        }
+      }
     }
   }, async (req, reply) => {
     const body = z

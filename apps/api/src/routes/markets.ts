@@ -30,7 +30,24 @@ export async function registerMarketRoutes(app: FastifyInstance) {
     schema: {
       tags: ["Markets"],
       summary: "List all markets",
-      description: "Get all available prediction markets with current prices"
+      description: "Get all available prediction markets with current prices",
+      response: {
+        200: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              title: { type: "string" },
+              description: { type: "string" },
+              status: { type: "string" },
+              outcome: { type: "string" },
+              priceYes: { type: "number" },
+              priceNo: { type: "number" }
+            }
+          }
+        }
+      }
     }
   }, async () => {
     const markets = await prisma.market.findMany({
@@ -62,7 +79,14 @@ export async function registerMarketRoutes(app: FastifyInstance) {
     schema: {
       tags: ["Markets"],
       summary: "Get market details",
-      description: "Get detailed information about a specific market"
+      description: "Get detailed information about a specific market",
+      params: {
+        type: "object",
+        required: ["id"],
+        properties: {
+          id: { type: "string", description: "Market UUID" }
+        }
+      }
     }
   }, async (req) => {
     const params = z.object({ id: z.string().uuid() }).parse(req.params);

@@ -18,7 +18,7 @@ import { registerQuoteRoutes } from "./routes/quote.js";
 import { registerSkillRoutes } from "./routes/skill.js";
 import { registerTradeRoutes } from "./routes/trades.js";
 
-export function buildServer() {
+export async function buildServer() {
   const app = Fastify({
     logger: true
   });
@@ -61,7 +61,7 @@ export function buildServer() {
   });
 
   // Swagger documentation
-  void app.register(swagger, {
+  await app.register(swagger, {
     openapi: {
       info: {
         title: "Molt Market API",
@@ -96,7 +96,7 @@ export function buildServer() {
     }
   });
 
-  void app.register(swaggerUi, {
+  await app.register(swaggerUi, {
     routePrefix: "/documentation",
     uiConfig: {
       docExpansion: "list",

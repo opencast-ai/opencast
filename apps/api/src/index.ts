@@ -8,7 +8,7 @@ const config = loadConfig(process.env);
 const port = config.PORT ?? 3001;
 const host = config.HOST ?? "0.0.0.0";
 
-const server = buildServer();
+const server = await buildServer();
 
 startScheduledJobs();
 

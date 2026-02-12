@@ -106,8 +106,10 @@ export function isBinaryYesNoMarket(pmMarket: PolymarketMarket): boolean {
  */
 export async function fetchMarketBySlug(slug: string): Promise<PolymarketMarket | null> {
   try {
-    const url = new URL(`${POLYMARKET_API_URL}/${slug}`);
+    const url = new URL(`${POLYMARKET_API_URL}/slug/${slug}`);
+    console.log(url.toString());
     const response = await fetch(url.toString());
+    console.log(response.status, response.statusText);
 
     if (!response.ok) {
       if (response.status === 404) return null;

@@ -83,7 +83,20 @@ async function verifyTweetProof(tweetUrl: string, claimToken: string): Promise<T
 }
 
 export async function registerClaimRoutes(app: FastifyInstance) {
-  app.get("/claim/:token", async (req, reply) => {
+  app.get("/claim/:token", {
+    schema: {
+      tags: ["Claim"],
+      summary: "Get agent claim info",
+      description: "Get information about an agent by its claim token",
+      params: {
+        type: "object",
+        required: ["token"],
+        properties: {
+          token: { type: "string", description: "Claim token" }
+        }
+      }
+    }
+  }, async (req, reply) => {
     const params = z.object({ token: z.string().min(1) }).parse(req.params);
 
     const agent = await prisma.agent.findUnique({
@@ -120,12 +133,32 @@ export async function registerClaimRoutes(app: FastifyInstance) {
     };
   });
 
-  app.post("/claim/:token", async (req, reply) => {
+  app.post("/claim/:token", {
+    schema: {
+      tags: ["Claim"],
+      summary: "Claim agent with tweet proof",
+      description: "Legacy endpoint: Claim an agent using a tweet as proof",
+      params: {
+        type: "object",
+        required: ["token"],
+        properties: {
+          token: { type: "string", description: "Claim token from agent registration" }
+        }
+      },
+      body: {
+        type: "object",
+        required: ["tweetUrl"],
+        properties: {
+          tweetUrl: { type: "string", description: "URL of the claiming tweet" }
+        }
+      }
+    }
+  }, async (req, reply) => {
     const params = z.object({ token: z.string().min(1) }).parse(req.params);
 
     const body = z
       .object({
-        tweetUrl: z.string().url()
+        tweetUrl: z.string()
       })
       .parse(req.body);
 

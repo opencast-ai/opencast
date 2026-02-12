@@ -61,7 +61,27 @@ export async function registerAgentClaimRoutes(app: FastifyInstance) {
    * POST /claim/:token/nonce
    * Issue nonce for wallet signature (wallet-based claim flow)
    */
-  app.post("/claim/:token/nonce", async (req, reply) => {
+  app.post("/claim/:token/nonce", {
+    schema: {
+      tags: ["Claim"],
+      summary: "Get nonce for wallet claim",
+      description: "Get a nonce to sign for claiming an agent via wallet",
+      params: {
+        type: "object",
+        required: ["token"],
+        properties: {
+          token: { type: "string", description: "Claim token" }
+        }
+      },
+      body: {
+        type: "object",
+        required: ["walletAddress"],
+        properties: {
+          walletAddress: { type: "string", description: "Ethereum wallet address" }
+        }
+      }
+    }
+  }, async (req, reply) => {
     const params = z.object({ token: z.string().min(1) }).parse(req.params);
     const body = z
       .object({
@@ -106,7 +126,29 @@ export async function registerAgentClaimRoutes(app: FastifyInstance) {
    * POST /claim/:token/verify
    * Verify wallet signature and link agent to human (wallet-based claim)
    */
-  app.post("/claim/:token/verify", async (req, reply) => {
+  app.post("/claim/:token/verify", {
+    schema: {
+      tags: ["Claim"],
+      summary: "Verify wallet claim",
+      description: "Submit signed nonce to claim agent via wallet",
+      params: {
+        type: "object",
+        required: ["token"],
+        properties: {
+          token: { type: "string", description: "Claim token" }
+        }
+      },
+      body: {
+        type: "object",
+        required: ["nonceId", "walletAddress", "signature"],
+        properties: {
+          nonceId: { type: "string", description: "Nonce ID from /claim/:token/nonce" },
+          walletAddress: { type: "string", description: "Ethereum wallet address" },
+          signature: { type: "string", description: "EIP-191 signature" }
+        }
+      }
+    }
+  }, async (req, reply) => {
     const params = z.object({ token: z.string().min(1) }).parse(req.params);
     const body = z
       .object({
