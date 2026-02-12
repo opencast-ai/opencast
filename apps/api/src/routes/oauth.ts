@@ -176,8 +176,8 @@ export async function registerOAuthRoutes(app: FastifyInstance) {
       const callbackParams = new URLSearchParams({
         apiKey,
         userId: user.id,
-        xHandle: user.xHandle,
-        xName: user.xName,
+        xHandle: user.xHandle ?? "",
+        xName: user.xName ?? "",
         xAvatar: user.xAvatar ?? "",
         balanceCoin: microsToCoinNumber(user.balanceMicros).toString()
       });

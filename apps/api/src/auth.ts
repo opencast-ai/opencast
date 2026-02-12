@@ -96,12 +96,26 @@ export async function requireAccount(req: FastifyRequest): Promise<Authenticated
     throw Object.assign(new Error("Invalid API key"), { statusCode: 401 });
   }
 
-  if (match.agentId) {
-    return { agentId: match.agentId };
-  }
-
+  // If it's a user key, return userId directly
   if (match.userId) {
     return { userId: match.userId };
+  }
+
+  // If it's an agent key, resolve to owner user (shared trader account)
+  if (match.agentId) {
+    const agent = await prisma.agent.findUnique({
+      where: { id: match.agentId },
+      select: { ownerUserId: true }
+    });
+
+    // If agent has an owner, resolve to owner's trader account
+    if (agent?.ownerUserId) {
+      return { userId: agent.ownerUserId };
+    }
+
+    // Agent not claimed yet - return agentId for endpoints that need it
+    // This allows unclaimed agents to still function (for demo flexibility)
+    return { agentId: match.agentId };
   }
 
   throw Object.assign(new Error("Invalid API key"), { statusCode: 401 });

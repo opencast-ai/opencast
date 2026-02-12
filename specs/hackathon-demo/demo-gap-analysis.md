@@ -14,8 +14,9 @@ Constraints:
 ## 2) Required vs Mocked Scope
 
 Required to work:
-- Human registration with **Web3 wallet (MetaMask)**
+- Human registration with **Web3 wallet signing (MetaMask)** as the only demo auth path
 - Human can register agent and receive credentials for OpenClaw agent usage
+- Human and that human's agent authenticate separately but operate on the **same trader account** (shared balance/positions/history)
 - APIs for agents to discover markets and place bets
 - Markets arena showing **OPEN + RESOLVED** markets
 - Markets forwarded from **Polymarket** (metadata + price + settlement state)
@@ -45,7 +46,8 @@ Frontend (implemented):
 - Leaderboard page (already exists; can be left as-is)
 
 Auth/identity (implemented):
-- Human auth is currently **X/Twitter OAuth**, not Web3 wallet
+- Human auth is currently **X/Twitter OAuth**
+- Hackathon decision is to **replace this with Web3 signing (MetaMask)** for human registration/login
 
 Polymarket integration (implemented):
 - Market creation/import from Polymarket for active markets
@@ -56,7 +58,7 @@ Polymarket integration (implemented):
 
 | Requirement | Current State | Gap | Priority |
 |---|---|---|---|
-| Human register with MetaMask | Only X OAuth exists | Implement wallet auth/sign-in path (SIWE-lite or signed nonce) | P0 |
+| Human register with MetaMask | X OAuth exists as current human auth | Replace X OAuth human auth with wallet signature auth (SIWE-lite or signed nonce) | P0 |
 | Human register agent + generate credentials | Agent credential generation exists but not cleanly tied to human wallet identity | Add "human-owned agent" create flow and return agent creds in one path | P0 |
 | Agent APIs to bet | Mostly present | Tighten API docs/examples to match actual payloads | P0 |
 | Markets arena open+resolved | Present in UI/API | Ensure resolved state from forwarded markets is actually represented after settlement sync | P0 |
@@ -70,7 +72,7 @@ Polymarket integration (implemented):
 ## 5) Critical Findings (highest risk to demo success)
 
 1. **Identity mismatch (MetaMask missing)**
-- Demo requirement says human registration is wallet-based, but implementation is X OAuth.
+- Demo requirement and decision are wallet-based auth, but implementation is still X OAuth.
 - This is a visible demo blocker for judges if not addressed.
 
 2. **Polymarket forwarding control mismatch**
@@ -87,13 +89,18 @@ Polymarket integration (implemented):
 - Current machine-readable doc (`/skill.md`) has payload field names inconsistent with API implementation.
 - This directly threatens A2A onboarding during demo.
 
+5. **Account-model mismatch risk**
+- Current model treats user and agent balances/positions as separate accounts.
+- Demo decision requires a shared trader account where either credential type can act on the same portfolio.
+
 ## 6) Recommended Scope Cut for 1-Day Delivery
 
 Given the 1-day constraint, target a strict "Demo M1" implementation:
 
 P0 (must ship):
-- Wallet login (MetaMask) with minimal signed nonce flow
+- Wallet login (MetaMask) with minimal signed nonce flow, replacing X/OAuth for demo auth
 - Human-owned agent registration endpoint that returns agent credentials
+- Shared trader account authorization model (human key or linked agent key can access/trade same account state)
 - Admin manual forward endpoint for specific Polymarket markets
 - Admin/cron settlement sync endpoint using Polymarket status/outcome
 - Docs cleanup for AI participants (copy-paste accurate)
@@ -112,11 +119,13 @@ WP1: Wallet Auth (P0)
 - Add nonce issue + verify signature endpoints
 - Persist wallet address on `User` (new field)
 - Web login page: connect MetaMask + sign message + store API key
+- De-scope or hide X/OAuth login path in demo UI/API surface to avoid auth-path ambiguity during judging
 
 WP2: Human -> Agent Credential Flow (P0)
 - Add endpoint like `POST /agents/register-for-user` (auth required)
 - Return `{agentId, apiKey, balanceCoin}`
 - Link ownership directly in DB (no social proof dependency for demo)
+- Implement shared trader-account semantics so linked human/agent credentials resolve to one portfolio/balance state
 
 WP3: Admin Manual Polymarket Forward (P0)
 - Add endpoint accepting explicit Polymarket market IDs/slugs
@@ -163,7 +172,9 @@ Dependencies:
 Open decisions (should lock before implementation starts):
 - "Sell" semantics for demo: keep YES/NO-only bets vs implement explicit close endpoint
 - Wallet auth protocol depth: SIWE-lite (recommended for speed) vs full SIWE stack
-- Whether to keep X OAuth in parallel or hide it during demo
+
+Locked decision:
+- Human registration/login for the hackathon demo uses **Web3 wallet signing (MetaMask)** instead of X/OAuth
 
 ## 10) Suggested Execution Order (1 day)
 

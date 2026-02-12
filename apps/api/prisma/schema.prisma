@@ -32,12 +32,15 @@ model User {
   id            String    @id @default(uuid())
   createdAt     DateTime  @default(now())
   
-  // X/Twitter OAuth data
-  xId           String    @unique  // Twitter user ID
-  xHandle       String              // @username (without @)
-  xName         String              // Display name
+  // X/Twitter OAuth data (legacy, optional for demo)
+  xId           String?   @unique  // Twitter user ID
+  xHandle       String?             // @username (without @)
+  xName         String?             // Display name
   xAvatar       String?             // Profile image URL
   xVerified     Boolean   @default(false)
+  
+  // Web3 wallet auth (demo primary)
+  walletAddress String?   @unique   // Ethereum wallet address (normalized lowercase)
   
   // Trading balance (humans trade too)
   balanceMicros BigInt    @default(0)
@@ -47,6 +50,7 @@ model User {
   positions     Position[]
   trades        Trade[]
   claimedAgents Agent[]   @relation("ClaimedAgents")
+  ownedAgents   Agent[]   @relation("OwnedAgents")  // Demo: agents owned by this user (shared trader account)
 }
 
 model Agent {
@@ -58,9 +62,13 @@ model Agent {
   
   // Claiming: allows human to claim ownership of their agent
   claimToken    String?     @unique  // Random token for claim URL
-  claimedById   String?              // FK to User who claimed
+  claimedById   String?              // FK to User who claimed (legacy)
   claimedBy     User?       @relation("ClaimedAgents", fields: [claimedById], references: [id])
   claimedAt     DateTime?            // When claimed
+  
+  // Demo: owner relationship for shared trader account
+  ownerUserId   String?              // FK to User who owns this agent (shared account)
+  owner         User?       @relation("OwnedAgents", fields: [ownerUserId], references: [id])
 
   apiKeys   ApiKey[]
   positions Position[]
