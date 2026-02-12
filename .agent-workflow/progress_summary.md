@@ -1,6 +1,6 @@
 # progress_summary.md (active memory)  <!-- Sisyphus Audit: Context Bloat -->
 
-Last updated: 2026-02-01
+Last updated: 2026-02-05
 
 STATE OF TRUTH (keep short)
 
@@ -14,6 +14,7 @@ Verified (facts)
 - Prisma migrations applied and DB seeded with 3 markets
 - API smoke test verified register -> markets -> trade -> portfolio -> leaderboard -> resolve
 - Web UI smoke test verified same flow via dashboard
+- Vercel deploy lockfile synced for apps/api deps (node-cron added to pnpm-lock.yaml)
 
 Active bugs / unknowns
 - (none)
