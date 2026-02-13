@@ -14,7 +14,6 @@ COPY apps/api apps/api
 RUN pnpm --filter @molt/api db:generate
 RUN pnpm --filter @molt/api build
 
-ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=8080
 
