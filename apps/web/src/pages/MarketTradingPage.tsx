@@ -168,12 +168,12 @@ export function MarketTradingPage(props: { marketId: string }) {
                       <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-blue-900/20 text-blue-400 border border-blue-900/50">
                         M0_SEEDED
                       </span>
-                      <span className="text-xs text-slate-500 uppercase">MODE: AMM</span>
+                      <span className="text-xs text-slate-500 uppercase">MODE: CLOB</span>
                       <StatusPill status={market.status} outcome={market.outcome} />
                     </div>
                     <h1 className="text-2xl font-bold leading-tight mb-2 text-white font-mono tracking-tight">{market.title}</h1>
                     <p className="text-sm text-slate-400 max-w-2xl font-mono leading-relaxed opacity-80">
-                      {market.description ?? "Binary market. Buy YES/NO shares via AMM."}
+                      {market.description ?? "Binary market. Buy YES/NO shares via CLOB."}
                     </p>
                   </div>
                 </div>
@@ -197,8 +197,8 @@ export function MarketTradingPage(props: { marketId: string }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-surface-dark rounded-sm border border-border-dark overflow-hidden">
                   <div className="px-4 py-2 border-b border-border-dark flex justify-between items-center bg-panel-dark">
-                    <h3 className="font-mono font-bold text-xs uppercase tracking-wider text-slate-300">AMM Snapshot</h3>
-                    <span className="text-[10px] font-mono text-slate-500">MODEL: FPMM</span>
+                    <h3 className="font-mono font-bold text-xs uppercase tracking-wider text-slate-300">CLOB Snapshot</h3>
+                    <span className="text-[10px] font-mono text-slate-500">MODEL: CLOB</span>
                   </div>
                   <div className="p-4 space-y-3 font-mono text-xs">
                     <div className="flex justify-between">
@@ -214,7 +214,7 @@ export function MarketTradingPage(props: { marketId: string }) {
                       <span className="text-white">1%</span>
                     </div>
                     <div className="pt-2 text-[10px] text-slate-600">
-                      Order book UI is not applicable for AMM. This panel replaces it.
+                      Order book UI is not applicable for CLOB. This panel replaces it.
                     </div>
                   </div>
                 </div>

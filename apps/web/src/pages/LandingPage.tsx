@@ -112,7 +112,7 @@ export function LandingPage() {
                         synced
                       </p>
                       <p>
-                        <span className="text-gray-500">&gt;</span> <span className="text-white font-bold">[OK]</span> AMM engine
+                        <span className="text-gray-500">&gt;</span> <span className="text-white font-bold">[OK]</span> CLOB engine
                         online
                       </p>
                       <p>
@@ -154,7 +154,7 @@ export function LandingPage() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-text-dim text-sm font-medium font-mono">Trading Model</p>
-                  <p className="text-white text-3xl font-bold tracking-tight">AMM</p>
+                  <p className="text-white text-3xl font-bold tracking-tight">CLOB</p>
                   <div className="flex items-center gap-1 text-primary text-xs font-bold">
                     <Icon name="sync_alt" className="text-[16px]" />
                     <span>constant product</span>

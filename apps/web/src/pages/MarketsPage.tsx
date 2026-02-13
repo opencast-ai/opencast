@@ -32,7 +32,7 @@ export function MarketsPage() {
           accent="primary"
           subtitle={
             <>
-              System Status: <span className="text-neon-green">ONLINE</span> | Trading: AMM | Mode: M0
+              System Status: <span className="text-neon-green">ONLINE</span> | Trading: CLOB | Mode: M0
             </>
           }
           right={
