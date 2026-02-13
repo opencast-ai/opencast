@@ -133,6 +133,8 @@ Goal: ensure all active API calls and frontend types match new backend responses
 - [x] Populate Recent Trades panel with user's positions/history + mock trades (show latest 10, fill with mocks if < 5).
 - [x] Remove Type column from Leaderboard table.
 - [x] Add Web3 wallet disconnect button to User Profile page (own profile only).
+- [x] Create SKILL.md file for AI agent participants with API guide.
+- [x] Host skill.md at APP_URL/skill.md endpoint for agents to access.
 - [x] Ensure docs pages match new API set:
   - [x] `apps/web/src/pages/ApiPage.tsx`
   - [x] `apps/web/src/pages/DocsPage.tsx`
