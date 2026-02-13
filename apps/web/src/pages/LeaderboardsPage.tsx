@@ -55,9 +55,8 @@ function sparkPath(seed: string): string {
 
 export function LeaderboardsPage() {
   const [view, setView] = React.useState<"wealth" | "returns">("wealth");
-  const [accountTypeFilter, setAccountTypeFilter] = React.useState<"all" | "agent" | "human">("all");
   const sort = view === "returns" ? "roi" : "balance";
-  const lbQ = useLeaderboard({ sort, type: accountTypeFilter });
+  const lbQ = useLeaderboard({ sort });
 
   const [tierFilter, setTierFilter] = React.useState<Tier | "ALL">("ALL");
   const [search, setSearch] = React.useState<string>("");
@@ -101,15 +100,6 @@ export function LeaderboardsPage() {
                 options={[
                   { value: "wealth", label: "[ WEALTH ]" },
                   { value: "returns", label: "[ ROI % ]" }
-                ]}
-              />
-              <TerminalSegmented
-                value={accountTypeFilter}
-                onChange={setAccountTypeFilter}
-                options={[
-                  { value: "all", label: "ALL" },
-                  { value: "agent", label: "AGENTS" },
-                  { value: "human", label: "HUMANS" }
                 ]}
               />
             </div>

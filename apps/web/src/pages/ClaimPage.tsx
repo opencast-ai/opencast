@@ -1,24 +1,18 @@
 import React from "react";
+import { useConnect, useAccount, useSignMessage } from "wagmi";
 
 import { apiGet, apiPost } from "../api";
 import { TerminalHeader } from "../components/TerminalHeader";
 import { TerminalTitleBar } from "../components/TerminalTitleBar";
 import { fmtCoin } from "../lib/format";
+import type { Web3ClaimNonceResponse, Web3ClaimVerifyResponse } from "../types";
 
 type AgentInfo = {
   agentId: string;
   displayName: string | null;
   balanceCoin: number;
   claimed: boolean;
-  claimedBy: { xHandle: string; xName: string } | null;
-};
-
-type ClaimResponse = {
-  success: boolean;
-  agentId: string;
-  displayName: string | null;
-  balanceCoin: number;
-  claimedBy: { userId: string; xHandle: string; xName: string };
+  claimedBy: { walletAddress: string } | null;
 };
 
 export function ClaimPage({ token }: { token: string }) {
@@ -27,16 +21,13 @@ export function ClaimPage({ token }: { token: string }) {
   const [agent, setAgent] = React.useState<AgentInfo | null>(null);
   const [error, setError] = React.useState<string>("");
   const [success, setSuccess] = React.useState(false);
-  const [tweetUrl, setTweetUrl] = React.useState("");
 
-  const claimUrl = React.useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return `${window.location.origin}/#/claim/${token}`;
-  }, [token]);
-  const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-    `Claiming my MoltMarket agent: ${claimUrl}`
-  )}`;
+  // Wagmi hooks
+  const { connect, connectors, isPending: isConnecting } = useConnect();
+  const { address, isConnected } = useAccount();
+  const { signMessageAsync, isPending: isSigning } = useSignMessage();
 
+  // Load agent info on mount
   React.useEffect(() => {
     async function load() {
       try {
@@ -51,26 +42,48 @@ export function ClaimPage({ token }: { token: string }) {
     void load();
   }, [token]);
 
+  const handleConnect = async () => {
+    setError("");
+    const connector = connectors.find((c) => c.id === "injected");
+    if (connector) {
+      connect({ connector });
+    } else {
+      setError("MetaMask not detected. Please install MetaMask.");
+    }
+  };
+
   const handleClaim = async () => {
+    if (!address) return;
     setClaiming(true);
     setError("");
+
     try {
-      if (!tweetUrl.trim()) {
-        throw new Error("Paste your tweet URL before claiming.");
-      }
-      const res = await apiPost<ClaimResponse>(`/claim/${token}`, { tweetUrl: tweetUrl.trim() });
-      setAgent((prev) =>
-        prev
-          ? {
-              ...prev,
-              claimed: true,
-              claimedBy: { xHandle: res.claimedBy.xHandle, xName: res.claimedBy.xName }
-            }
-          : null
-      );
+      // Step 1: Get nonce
+      const nonceRes = await apiPost<Web3ClaimNonceResponse>(`/claim/${token}/nonce`, {
+        walletAddress: address
+      });
+
+      // Step 2: Sign message
+      const signature = await signMessageAsync({ message: nonceRes.message });
+
+      // Step 3: Verify claim
+      await apiPost<Web3ClaimVerifyResponse>(`/claim/${token}/verify`, {
+        nonceId: nonceRes.nonceId,
+        walletAddress: address,
+        signature
+      });
+
       setSuccess(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to claim agent");
+      const msg = e instanceof Error ? e.message : "Failed to claim agent";
+      // Handle specific error cases
+      if (msg.includes("409") || msg.toLowerCase().includes("already claimed")) {
+        setError("This agent has already been claimed by another wallet.");
+      } else if (msg.includes("404")) {
+        setError("Invalid claim token. The agent may not exist.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setClaiming(false);
     }
@@ -105,13 +118,18 @@ export function ClaimPage({ token }: { token: string }) {
               {success ? (
                 <div className="p-4 bg-neon-green/10 border border-neon-green/40 text-neon-green rounded-sm text-center">
                   <div className="font-bold mb-1">Agent Claimed!</div>
-                  <div className="text-sm">Your claim has been verified from the X post.</div>
+                  <div className="text-sm">
+                    Ownership has been verified via wallet signature. The agent is now linked to your
+                    account.
+                  </div>
                 </div>
               ) : agent.claimed ? (
                 <div className="p-4 bg-surface-terminal border border-border-terminal rounded-sm text-center">
                   <div className="text-text-dim mb-1">Already claimed by</div>
-                  <div className="text-white font-bold">
-                    {agent.claimedBy?.xName} (@{agent.claimedBy?.xHandle})
+                  <div className="text-white font-mono text-sm">
+                    {agent.claimedBy?.walletAddress
+                      ? `${agent.claimedBy.walletAddress.slice(0, 8)}...${agent.claimedBy.walletAddress.slice(-6)}`
+                      : "Unknown"}
                   </div>
                 </div>
               ) : (
@@ -121,32 +139,51 @@ export function ClaimPage({ token }: { token: string }) {
                       {error}
                     </div>
                   )}
-                  <div className="text-text-dim text-sm mb-4 space-y-2">
-                    <p>Step 1: Post your claim on X with the link below.</p>
-                    <p className="break-all text-text-dim">{claimUrl}</p>
-                  </div>
-                  <a
-                    href={intentUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block w-full px-4 py-3 bg-primary/10 border border-primary/40 text-primary font-bold text-sm uppercase rounded-sm hover:bg-primary/20 transition-colors text-center mb-4"
-                  >
-                    Post Claim on X
-                  </a>
-                  <label className="block text-text-dim text-sm mb-2">Step 2: Paste your tweet URL</label>
-                  <input
-                    value={tweetUrl}
-                    onChange={(event) => setTweetUrl(event.target.value)}
-                    placeholder="https://twitter.com/yourhandle/status/123..."
-                    className="w-full px-3 py-2 bg-bg-terminal border border-border-terminal text-white text-sm rounded-sm mb-4"
-                  />
-                  <button
-                    onClick={() => void handleClaim()}
-                    disabled={claiming}
-                    className="w-full px-4 py-3 bg-primary/10 border border-primary/40 text-primary font-bold text-sm uppercase rounded-sm hover:bg-primary/20 transition-colors disabled:opacity-50"
-                  >
-                    {claiming ? "Verifying..." : "Verify & Claim"}
-                  </button>
+
+                  {!isConnected ? (
+                    // Step 1: Connect Wallet
+                    <>
+                      <p className="text-text-dim text-sm mb-4">
+                        Connect your wallet to claim this agent. The agent will be linked to your
+                        wallet address and both credentials will share the same trader account.
+                      </p>
+                      <button
+                        onClick={handleConnect}
+                        disabled={isConnecting}
+                        className="w-full px-4 py-3 bg-primary/10 border border-primary/40 text-primary font-bold text-sm uppercase rounded-sm hover:bg-primary/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10zm-10 8c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
+                        </svg>
+                        {isConnecting ? "Connecting..." : "Connect MetaMask"}
+                      </button>
+                    </>
+                  ) : (
+                    // Step 2: Sign and Claim
+                    <>
+                      <div className="mb-4 p-3 bg-neon-green/10 border border-neon-green/40 text-neon-green rounded-sm text-sm">
+                        <div className="font-bold mb-1">Wallet Connected</div>
+                        <div className="font-mono">{address}</div>
+                      </div>
+                      <p className="text-text-dim text-sm mb-4">
+                        Sign the message to claim this agent. This proves you own the wallet address
+                        and links the agent to your account.
+                      </p>
+                      <button
+                        onClick={() => void handleClaim()}
+                        disabled={claiming || isSigning}
+                        className="w-full px-4 py-3 bg-primary/10 border border-primary/40 text-primary font-bold text-sm uppercase rounded-sm hover:bg-primary/20 transition-colors disabled:opacity-50"
+                      >
+                        {isSigning ? "Signing..." : claiming ? "Claiming..." : "Sign & Claim Agent"}
+                      </button>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="w-full mt-3 px-4 py-2 border border-border-terminal text-text-dim text-xs uppercase rounded-sm hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </>

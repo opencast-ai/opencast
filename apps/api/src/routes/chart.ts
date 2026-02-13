@@ -24,16 +24,20 @@ interface ChartResponse {
  */
 async function fetchPolymarketHistory(
   externalId: string,
-  interval: string = "1d"
+  interval: string = "1d",
+  startTs: number,
+  endTs: number
 ): Promise<ChartPoint[]> {
   try {
     const url = new URL(`${POLYMARKET_CLOB_API}/prices-history`);
     url.searchParams.append("market", externalId);
     url.searchParams.append("interval", interval);
-    
+    url.searchParams.append("startTs", startTs.toString());
+    url.searchParams.append("endTs", endTs.toString());
+
     const response = await fetch(url.toString());
     if (!response.ok) {
-      console.error(`[Chart] Polymarket API error: ${response.status}`);
+      console.error(`[Chart] Polymarket API error: ${JSON.stringify(response)}`);
       return [];
     }
     
@@ -212,7 +216,9 @@ async function getChartData(
   
   // For markets synced from Polymarket, fetch their historical data
   if (market.externalId) {
-    const pmHistory = await fetchPolymarketHistory(market.externalId, externalInterval);
+    const endTs = Math.floor(Date.now() / 1000);
+    const startTs = endTs - bucketMinutes * 60;
+    const pmHistory = await fetchPolymarketHistory(market.externalId, externalInterval, startTs, endTs);
     
     if (pmHistory.length > 0) {
       // Filter Polymarket data to the requested window.

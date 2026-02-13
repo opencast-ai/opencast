@@ -1,42 +1,100 @@
-# Slide 3: Agent Registry Guide (Config Route) - Implementation Log
+# Slide 3: Agent Connection Guide (Config Route) - Final Implementation Log
 
 ## Overview
-Replace old config page with actionable guide for agent onboarding and claim flow.
+Minimal guide page containing only the skill.md reference for AI agents to learn how to connect to MoltMarket.
+
+## Final Structure
+- **Single panel only**: "Read Skill Instructions"
+- **No other sections** (no registration steps, no API docs, no account model info)
+- **Minimal, clean layout**
 
 ## Checklist Items
 
-### [ ] Replace `apps/web/src/pages/ConfigPage.tsx` content
-**Status:** In Progress
+### [x] Single panel: Read Skill Instructions
+**Status:** Done
 
-New content:
-- Agent Registry Guide page
-- Keep route path `#/config` for compatibility
+Content:
+- Title: "AGENT CONNECTION GUIDE"
+- Subtitle: "For AI agents: How to connect and trade on MoltMarket"
+- Panel header: "Read Skill Instructions" with book icon
+- Description text about skill.md
+- URL display: `{API_URL}/skill.md`
+- "Open skill.md" link
 
-### [ ] Include required informational block
-**Status:** Pending
+### [x] Remove all other panels
+**Status:** Done
 
-- "Send Your AI Agent: Read `BASE_URL/skill.md` and follow the instructions to join MoltMarket"
+Removed:
+- Step 02: Register Your Agent
+- Step 03: Human Claims Ownership  
+- Step 04: Start Trading
+- Shared Trader Account Model section
+- Reference Documentation section
+- All API endpoint documentation
 
-### [ ] Include registry guide sections
-**Status:** Pending
+## UI Validation (Agent Browser)
 
-- Register agent (`POST /agents/register`) quick action
-- Display/copy returned `agentId`, `apiKey`, `claimUrl`
-- Explain shared trader account model (human+agent credentials)
+### Screenshot: Final Minimal Guide
+![Agent Connection Guide - Final](slide3-config-page-final.png)
 
-### [ ] Include claim guide section
-**Status:** Pending
+Validation results:
+- ✅ Title: "AGENT CONNECTION GUIDE"
+- ✅ Subtitle present
+- ✅ Single panel: "Read Skill Instructions"
+- ✅ Description text visible
+- ✅ skill.md URL displayed
+- ✅ "Open skill.md" link present
+- ✅ NO other panels or sections
+- ✅ NO registration UI
+- ✅ NO API documentation blocks
+- ✅ NO interactive elements
 
-- Linking to `#/claim/:token` flow
+### Snapshot Results
+```
+- link "Open skill.md" [ref=e10]
+```
 
-### [ ] Remove admin controls
-**Status:** Pending
+## Test Results
 
-- No admin token inputs/buttons in UI
+### Typecheck
+```
+> @molt/web@ typecheck /Users/sniperman/code/molt-market/apps/web
+> tsc -p tsconfig.json --noEmit
+✅ PASSED
+```
 
-## Design Notes
+### Build
+```
+vite v5.4.21 building for production...
+✓ 1462 modules transformed.
+✅ Build successful
+```
 
-Terminal theme preserved:
-- Code blocks with monospace font
-- Copy-to-clipboard functionality
-- Clear section headers
+## Files Modified
+1. `apps/web/src/pages/ConfigPage.tsx` - Minimal version with single panel
+
+## Page Structure
+
+```
+AGENT CONNECTION GUIDE
+For AI agents: How to connect and trade on MoltMarket
+
+┌─────────────────────────────────────────┐
+│  READ SKILL INSTRUCTIONS                │
+├─────────────────────────────────────────┤
+│  Access the skill.md file to learn...   │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ http://localhost:3001/skill.md  │    │
+│  │ [Open skill.md]                 │    │
+│  └─────────────────────────────────┘    │
+└─────────────────────────────────────────┘
+```
+
+## Done Gate
+- [x] Slide checks pass
+- [x] Typecheck + build pass
+- [x] Only "Read Skill Instructions" panel present
+- [x] skill.md URL and link visible
+- [x] All other content removed
+- [x] Minimal, clean layout

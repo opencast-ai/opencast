@@ -27,7 +27,6 @@ export function DashboardPage() {
   const portfolioQ = usePortfolio(session.apiKey);
 
   const selfAccountId = session.isHuman ? session.userId : session.agentId;
-  const selfIdLabel = session.isHuman ? "user_id:" : "agent_id:";
   const profileTo = session.isHuman ? `/user/${session.userId}` : `/agent/${session.agentId}`;
 
   const rank = rankForAccount(leaderboardQ.rows, selfAccountId);
@@ -46,12 +45,9 @@ export function DashboardPage() {
         <div className="w-full mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-text-muted font-mono text-sm">{selfIdLabel}</span>
-                <h1 className="text-white tracking-tight text-3xl font-bold leading-tight font-mono">
-                  {selfAccountId ? shortId(selfAccountId) : "NO_ACCOUNT"}
-                </h1>
-              </div>
+              <h1 className="text-white tracking-tight text-3xl font-bold leading-tight font-mono">
+                {selfAccountId ? shortId(selfAccountId) : "NO_ACCOUNT"}
+              </h1>
               <span
                 className={`px-2 py-0.5 rounded-sm text-[10px] font-bold border uppercase tracking-widest font-mono ${statusCls}`}
               >
@@ -100,12 +96,14 @@ export function DashboardPage() {
             <p className="text-text-muted text-xs font-mono uppercase tracking-wider mb-1">Total_Equity</p>
             <div className="flex items-end gap-2">
               <p className="text-white text-3xl font-bold tracking-tight font-mono">
-                {portfolioQ.portfolio ? fmtCoin(portfolioQ.portfolio.balanceCoin).split(".")[0] : "—"}
+                {portfolioQ.portfolio
+                  ? fmtCoin(portfolioQ.portfolio.totalEquityCoin ?? portfolioQ.portfolio.balanceCoin).split(".")[0]
+                  : "—"}
               </p>
               <span className="text-primary font-bold mb-1.5 text-lg">C</span>
             </div>
             <div className="mt-2 text-xs text-text-muted font-mono flex items-center gap-1">
-              <span className="text-primary">&gt;</span> fee_model: 1% → house
+              <span className="text-primary">&gt;</span> balance + positions
             </div>
           </div>
 
@@ -332,34 +330,6 @@ export function DashboardPage() {
                 >
                   View_All
                 </Link>
-              </div>
-            </div>
-
-            <div className="rounded border border-white/10 bg-surface-dark p-4">
-              <div className="text-white text-sm font-bold font-mono uppercase tracking-wider">Connection</div>
-              <div className="mt-3 space-y-3">
-                <div className="text-text-muted font-mono text-xs">x-api-key</div>
-                <input
-                  className="w-full rounded-sm bg-surface-terminal border border-border-terminal text-white placeholder-text-dim focus:border-primary focus:ring-0 text-xs font-mono"
-                  placeholder="paste_api_key..."
-                  value={session.apiKey}
-                  onChange={(e) => session.setApiKey(e.target.value)}
-                />
-                <div className="flex gap-2">
-                  <button
-                    className="flex-1 h-8 px-3 bg-primary hover:bg-red-500 transition-colors rounded text-black text-xs font-bold uppercase font-mono"
-                    onClick={() => void session.registerAgent()}
-                  >
-                    Register
-                  </button>
-                  <button
-                    className="flex-1 h-8 px-3 border border-border-terminal bg-bg-terminal hover:bg-surface-terminal rounded text-text-muted hover:text-white text-xs font-bold uppercase font-mono"
-                    onClick={() => session.disconnect()}
-                    disabled={!session.apiKey}
-                  >
-                    Disconnect
-                  </button>
-                </div>
               </div>
             </div>
           </aside>
