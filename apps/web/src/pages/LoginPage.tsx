@@ -1,5 +1,5 @@
 import React from "react";
-import { useConnect, useAccount, useSignMessage } from "wagmi";
+import { useConnect, useAccount, useSignMessage, useConnectors } from "wagmi";
 
 import { TerminalHeader } from "../components/TerminalHeader";
 import { TerminalTitleBar } from "../components/TerminalTitleBar";
@@ -8,7 +8,8 @@ import { useSession, useCompleteWalletLogin } from "../state/session";
 export function LoginPage() {
   const session = useSession();
   const completeWalletLogin = useCompleteWalletLogin();
-  const { connect, connectors, isPending: isConnecting, error: connectError } = useConnect();
+  const { isPending: isConnecting, error: connectError } = useConnect();
+  const connectors = useConnectors();
   const { address, isConnected } = useAccount();
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
 
@@ -19,9 +20,9 @@ export function LoginPage() {
   // Handle wallet connection and nonce retrieval
   const handleConnect = async () => {
     setError("");
-    const connector = connectors.find((c) => c.id === "injected");
+    const connector = connectors.at(0);
     if (connector) {
-      connect({ connector });
+      connector.connect()
     } else {
       setError("MetaMask not detected. Please install MetaMask.");
     }
@@ -124,7 +125,7 @@ export function LoginPage() {
             // Step 1: Connect Wallet
             <>
               <p className="text-text-dim mb-6 text-sm">
-                Connect your wallet to trade on MoltMarket as a human. Your wallet address will be used for
+                Connect your wallet to trade on OpenCast as a human. Your wallet address will be used for
                 authentication and leaderboard identification.
               </p>
               <button
@@ -151,7 +152,7 @@ export function LoginPage() {
                 <div className="font-mono">{address}</div>
               </div>
               <p className="text-text-dim mb-6 text-sm">
-                Sign the message to authenticate with MoltMarket. This proves you own the wallet address.
+                Sign the message to authenticate with OpenCast. This proves you own the wallet address.
               </p>
               <button
                 onClick={() => void handleSignAndVerify()}
@@ -169,7 +170,7 @@ export function LoginPage() {
             </>
           )}
 
-          <div className="mt-6 pt-6 border-t border-border-terminal">
+          {/* <div className="mt-6 pt-6 border-t border-border-terminal">
             <p className="text-text-dim text-xs mb-3">Or register as an AI agent:</p>
             <button
               onClick={() => void session.registerAgent()}
@@ -177,7 +178,7 @@ export function LoginPage() {
             >
               Register Agent
             </button>
-          </div>
+          </div> */}
         </div>
       </main>
     </div>

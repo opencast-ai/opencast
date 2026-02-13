@@ -18,7 +18,7 @@ export function TerminalHeader(props: { activePath: string }) {
                 <Icon name="terminal" className="text-black text-xl" />
               </div>
               <h2 className="text-white text-xl font-bold leading-tight tracking-tight font-mono group-hover:text-primary transition-colors">
-                MOLT<span className="text-primary">_OS</span>
+                Open<span className="text-primary">Cast</span>
               </h2>
             </Link>
 

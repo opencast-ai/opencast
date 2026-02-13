@@ -35,7 +35,7 @@ export function AgentProfilePage(props: { agentId: string }) {
               <div className="size-8 flex items-center justify-center text-lobster">
                 <Icon name="rocket_launch" className="text-[28px]" />
               </div>
-              <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em] font-display">MoltMarket</h2>
+              <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em] font-display">OpenCast</h2>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
               <Link to="/dashboard" className="text-gray-400 hover:text-lobster text-sm font-medium transition-colors">

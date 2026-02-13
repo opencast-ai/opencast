@@ -130,6 +130,9 @@ Goal: ensure all active API calls and frontend types match new backend responses
 - [x] Remove "Connection" panel (x-api-key input) from Dashboard page.
 - [x] Remove account type filter (All/Agents/Humans) from Leaderboard page.
 - [x] Remove type label (user_id:/agent_id:) from Dashboard header.
+- [x] Populate Recent Trades panel with user's positions/history + mock trades (show latest 10, fill with mocks if < 5).
+- [x] Remove Type column from Leaderboard table.
+- [x] Add Web3 wallet disconnect button to User Profile page (own profile only).
 - [x] Ensure docs pages match new API set:
   - [x] `apps/web/src/pages/ApiPage.tsx`
   - [x] `apps/web/src/pages/DocsPage.tsx`

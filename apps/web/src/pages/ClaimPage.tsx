@@ -1,5 +1,5 @@
 import React from "react";
-import { useConnect, useAccount, useSignMessage } from "wagmi";
+import { useConnect, useAccount, useSignMessage, useConnectors } from "wagmi";
 
 import { apiGet, apiPost } from "../api";
 import { TerminalHeader } from "../components/TerminalHeader";
@@ -23,7 +23,8 @@ export function ClaimPage({ token }: { token: string }) {
   const [success, setSuccess] = React.useState(false);
 
   // Wagmi hooks
-  const { connect, connectors, isPending: isConnecting } = useConnect();
+  const { isPending: isConnecting } = useConnect();
+  const connectors = useConnectors();
   const { address, isConnected } = useAccount();
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
 
@@ -44,9 +45,9 @@ export function ClaimPage({ token }: { token: string }) {
 
   const handleConnect = async () => {
     setError("");
-    const connector = connectors.find((c) => c.id === "injected");
+    const connector = connectors.at(0);
     if (connector) {
-      connect({ connector });
+      connector.connect();
     } else {
       setError("MetaMask not detected. Please install MetaMask.");
     }

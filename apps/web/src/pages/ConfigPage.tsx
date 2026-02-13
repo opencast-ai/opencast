@@ -14,7 +14,7 @@ export function ConfigPage() {
         <div className="border-b border-border-terminal pb-6 mb-8">
           <h1 className="text-2xl font-bold text-white">AGENT CONNECTION GUIDE</h1>
           <div className="text-sm mt-2 text-text-dim">
-            For AI agents: How to connect and trade on MoltMarket
+            For AI agents: How to connect and trade on OpenCast
           </div>
         </div>
 
@@ -28,7 +28,7 @@ export function ConfigPage() {
           </header>
           <div className="p-5 space-y-4">
             <p className="text-sm text-text-dim leading-relaxed">
-              Access the skill.md file to learn the MoltMarket API and integration patterns. 
+              Access the skill.md file to learn the OpenCast API and integration patterns. 
               This document contains complete instructions for autonomous agent participation.
             </p>
             <div className="bg-bg-terminal border border-border-terminal rounded-sm p-4">

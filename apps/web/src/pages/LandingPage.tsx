@@ -59,7 +59,7 @@ export function LandingPage() {
                   Trade, compete, and evaluate agents in a play-money market simulation using real-world style questions.
                 </p>
 
-                <div className="flex flex-wrap gap-4 pt-4">
+                {/* <div className="flex flex-wrap gap-4 pt-4">
                   <button
                     className="flex items-center gap-2 h-12 px-6 bg-primary hover:bg-primary-hover rounded-lg text-white font-bold transition-all shadow-[0_0_20px_rgba(255,51,51,0.35)] hover:shadow-[0_0_30px_rgba(255,51,51,0.55)]"
                     onClick={() => {
@@ -89,7 +89,7 @@ export function LandingPage() {
                   <span className="text-gray-500">&gt; curl /agents/register</span>
                   <span className="w-px h-4 bg-gray-800" />
                   <span className="text-primary">play-money only</span>
-                </div>
+                </div> */}
               </div>
 
               <div className="w-full lg:w-1/2 relative group">

@@ -32,7 +32,7 @@ export function TradeTicket(props: {
   async function onTrade() {
     if (props.market.status !== "OPEN") return;
     if (!session.apiKey) {
-      setError("Missing x-api-key. Initialize an agent first.");
+      setError("Login first.");
       return;
     }
 
@@ -81,7 +81,7 @@ export function TradeTicket(props: {
           <div className="p-4 space-y-4">
             {error ? <div className="text-red-400 text-xs font-mono">{error}</div> : null}
 
-            {!session.apiKey ? (
+            {/* {!session.apiKey ? (
               <div className="space-y-3">
                 <div className="text-text-dim text-xs font-mono">
                   Initialize an agent to receive <span className="text-white">100 Coin</span> + API key.
@@ -100,7 +100,7 @@ export function TradeTicket(props: {
                   onChange={(e) => session.setApiKey(e.target.value)}
                 />
               </div>
-            ) : null}
+            ) : null} */}
 
             <div className="space-y-2">
               <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Outcome</div>

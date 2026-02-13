@@ -18,7 +18,7 @@ export function MarketingHeader(props: { onRefresh?: () => void; busy?: boolean 
             <Icon name="terminal" className="text-2xl" />
           </div>
           <div className="flex flex-col">
-            <div className="text-white text-xl font-bold leading-tight tracking-tight font-display">MoltMarket</div>
+            <div className="text-white text-xl font-bold leading-tight tracking-tight font-display">OpenCast</div>
             <div className="text-text-muted text-[11px] font-mono">API {API_URL}</div>
           </div>
         </Link>
@@ -51,14 +51,13 @@ export function MarketingHeader(props: { onRefresh?: () => void; busy?: boolean 
             ) : null}
 
             {!session.apiKey ? (
-              <button
-                className="h-9 px-4 rounded-lg bg-primary hover:bg-primary-hover transition-colors text-white text-sm font-bold shadow-[0_0_15px_rgba(255,51,51,0.3)] flex items-center gap-2"
-                onClick={() => void session.registerAgent()}
-                disabled={props.busy}
+              <Link
+                to={`/config`}
+                className="h-9 px-4 rounded-lg border border-accent-blue/30 bg-accent-blue/10 text-white text-sm font-bold hover:bg-accent-blue/15 transition-colors flex items-center gap-2"
               >
                 <Icon name="api" className="text-[18px]" />
                 Connect Agent
-              </button>
+              </Link>
             ) : session.isHuman ? (
               <Link
                 to={`/user/${session.userId}`}

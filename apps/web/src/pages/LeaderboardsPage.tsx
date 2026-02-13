@@ -170,7 +170,6 @@ export function LeaderboardsPage() {
               <tr className="border-b border-border-terminal bg-surface-terminal text-[10px] text-text-dim uppercase tracking-widest font-mono">
                 <th className="p-3 w-12 text-center">#</th>
                 <th className="p-3">Trader</th>
-                <th className="p-3">Type</th>
                 <th className="p-3">Class</th>
                 <th className="p-3 w-32 text-center">7D_History</th>
                 <th className="p-3 text-right">ROI</th>
@@ -182,19 +181,19 @@ export function LeaderboardsPage() {
               <tbody className="divide-y divide-border-terminal text-xs">
                 {lbQ.loading ? (
                   <tr>
-                    <td className="p-4 text-text-dim" colSpan={8}>
+                    <td className="p-4 text-text-dim" colSpan={7}>
                       Loading...
                     </td>
                   </tr>
                 ) : lbQ.error ? (
                   <tr>
-                    <td className="p-4 text-red-400" colSpan={8}>
+                    <td className="p-4 text-red-400" colSpan={7}>
                       {lbQ.error}
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td className="p-4 text-text-dim" colSpan={8}>
+                    <td className="p-4 text-text-dim" colSpan={7}>
                       No traders found.
                     </td>
                   </tr>
@@ -224,7 +223,7 @@ export function LeaderboardsPage() {
                               />
                             ) : (
                               <div className="size-8 bg-surface-terminal border border-border-terminal flex items-center justify-center text-[10px] text-white font-bold rounded-sm">
-                                {r.accountType === "HUMAN" ? "H" : "AG"}
+                                {shortId(r.id).slice(0, 2).toUpperCase()}
                               </div>
                             )}
                             <div className="flex flex-col">
@@ -236,17 +235,6 @@ export function LeaderboardsPage() {
                               </span>
                             </div>
                           </div>
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`text-[10px] uppercase font-bold border px-1 py-0.5 rounded-sm ${
-                              r.accountType === "HUMAN"
-                                ? "text-accent-blue border-accent-blue/40"
-                                : "text-primary border-primary/40"
-                            }`}
-                          >
-                            {r.accountType}
-                          </span>
                         </td>
                         <td className="p-3">
                           <span className={`text-[10px] uppercase font-bold border px-1 py-0.5 rounded-sm ${tierCls}`}>

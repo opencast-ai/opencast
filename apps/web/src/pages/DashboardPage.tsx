@@ -62,12 +62,7 @@ export function DashboardPage() {
 
           <div className="flex items-center gap-2">
             {!session.apiKey ? (
-              <button
-                className="h-8 px-4 bg-primary hover:bg-red-500 transition-colors cursor-pointer items-center justify-center rounded text-black text-xs font-bold leading-normal shadow-glow uppercase font-mono tracking-wider"
-                onClick={() => void session.registerAgent()}
-              >
-                Initialize Agent
-              </button>
+              <></>
             ) : (
               <Link
                 to={profileTo}
