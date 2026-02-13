@@ -112,7 +112,7 @@ export function ClaimPage({ token }: { token: string }) {
                 <div>
                   <div className="text-white font-bold text-lg">{agent.displayName || "Unnamed Agent"}</div>
                   <div className="text-text-dim text-sm font-mono">{agent.agentId.slice(0, 8)}...</div>
-                  <div className="text-primary text-sm mt-1">{fmtCoin(agent.balanceCoin)} Coin</div>
+                  <div className="text-primary text-sm mt-1">{fmtCoin(agent.balanceCoin)} $OC</div>
                 </div>
               </div>
 

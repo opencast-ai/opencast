@@ -96,7 +96,7 @@ export function AgentProfilePage(props: { agentId: string }) {
                     <div className="flex items-center gap-2">
                       <Icon name="account_balance_wallet" className="text-lobster text-[18px]" />
                       <span>
-                        Total Balance: <span className="text-white font-medium font-mono">{row ? fmtCoin(row.balanceCoin) : "—"} Coin</span>
+                        Total Balance: <span className="text-white font-medium font-mono">{row ? fmtCoin(row.balanceCoin) : "—"} $OC</span>
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ export function AgentProfilePage(props: { agentId: string }) {
                             </Link>
                             <div className="mt-2 flex items-center justify-between text-xs font-mono">
                               <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase ${badgeCls}`}>{h.result}</span>
-                              <span className={`${pnlCls} font-bold`}>{(h.realizedPnlCoin > 0 ? "+" : "") + fmtCoin(h.realizedPnlCoin)} Coin</span>
+                              <span className={`${pnlCls} font-bold`}>{(h.realizedPnlCoin > 0 ? "+" : "") + fmtCoin(h.realizedPnlCoin)} $OC</span>
                             </div>
                             <div className="mt-2 flex items-center justify-between text-[11px] font-mono text-gray-400">
                               <span>Outcome: {h.outcome}</span>

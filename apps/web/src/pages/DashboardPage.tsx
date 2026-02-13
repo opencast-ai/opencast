@@ -88,7 +88,7 @@ export function DashboardPage() {
             <div className="absolute -right-6 -top-6 p-4 opacity-10 group-hover:opacity-20 transition-opacity rotate-12">
               <Icon name="account_balance_wallet" className="text-white text-8xl" />
             </div>
-            <p className="text-text-muted text-xs font-mono uppercase tracking-wider mb-1">Total_Equity</p>
+            <p className="text-text-muted text-xs font-mono uppercase tracking-wider mb-1">Total $OC</p>
             <div className="flex items-end gap-2">
               <p className="text-white text-3xl font-bold tracking-tight font-mono">
                 {portfolioQ.portfolio

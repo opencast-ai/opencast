@@ -38,7 +38,7 @@ export function TradeTicket(props: {
 
     const c = Number.isFinite(coin) ? Math.max(1, Math.floor(coin)) : 0;
     if (c <= 0) {
-      setError("Trade amount must be >= 1 Coin.");
+      setError("Trade amount must be >= 1 $OC.");
       return;
     }
 
@@ -133,7 +133,7 @@ export function TradeTicket(props: {
             </div>
 
             <div className="space-y-2">
-              <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Amount (Coin)</div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Amount ($OC)</div>
               <input
                 className="w-full rounded-sm bg-surface-terminal border border-border-terminal text-white placeholder-text-dim focus:border-primary focus:ring-0 text-xs font-mono"
                 type="number"

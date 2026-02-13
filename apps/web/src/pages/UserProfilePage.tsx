@@ -66,7 +66,7 @@ export function UserProfilePage({ userId }: { userId: string }) {
               </div>
               <div className="border-t border-border-terminal pt-4">
                 <div className="text-[10px] text-text-dim uppercase mb-1">Balance</div>
-                <div className="text-white text-xl font-bold">{fmtCoin(user.balanceCoin)} Coin</div>
+                <div className="text-white text-xl font-bold">{fmtCoin(user.balanceCoin)} $OC</div>
               </div>
 
               {/* Disconnect Button - Only show for own profile */}
