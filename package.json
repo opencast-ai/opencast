@@ -4,7 +4,7 @@
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "pnpm -r dev",
-    "start": "pnpm --filter @molt/api db:generate && pnpm --filter @molt/api db:deploy && pnpm --filter @molt/api start",
+    "start": "pnpm --filter @molt/api db:generate && pnpm --filter @molt/api db:deploy && pnpm --filter @molt/api build && pnpm --filter @molt/api start",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",

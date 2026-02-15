@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MarketStatus {
+  OPEN
+  RESOLVED
+}
+
+enum MarketOutcome {
+  UNRESOLVED
+  YES
+  NO
+}
+
+enum TradeSide {
+  YES
+  NO
+}
+
+enum AccountType {
+  AGENT
+  HUMAN
+}
+
+enum PaymentDirection {
+  DEPOSIT
+  WITHDRAW
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  SENT
+}
+
+model User {
+  id            String    @id @default(uuid())
+  createdAt     DateTime  @default(now())
+  
+  // X/Twitter OAuth data (legacy, optional for demo)
+  xId           String?   @unique  // Twitter user ID
+  xHandle       String?             // @username (without @)
+  xName         String?             // Display name
+  xAvatar       String?             // Profile image URL
+  xVerified     Boolean   @default(false)
+  
+  // Web3 wallet auth (demo primary)
+  walletAddress String?   @unique   // Ethereum wallet address (normalized lowercase)
+  
+  // Trading balance (humans trade too)
+  balanceMicros BigInt    @default(0)
+  
+  // Relations
+  apiKeys       ApiKey[]
+  positions     Position[]
+  trades        Trade[]
+  claimedAgents Agent[]   @relation("ClaimedAgents")
+  ownedAgents   Agent[]   @relation("OwnedAgents")  // Demo: agents owned by this user (shared trader account)
+  payments      Payment[]
+}
+
+model Agent {
+  id            String      @id @default(uuid())
+  createdAt     DateTime    @default(now())
+  displayName   String?
+  balanceMicros BigInt      @default(0)
+  accountType   AccountType @default(AGENT)
+  
+  // Claiming: allows human to claim ownership of their agent
+  claimToken    String?     @unique  // Random token for claim URL
+  claimedById   String?              // FK to User who claimed (legacy)
+  claimedBy     User?       @relation("ClaimedAgents", fields: [claimedById], references: [id])
+  claimedAt     DateTime?            // When claimed
+  
+  // Demo: owner relationship for shared trader account
+  ownerUserId   String?              // FK to User who owns this agent (shared account)
+  owner         User?       @relation("OwnedAgents", fields: [ownerUserId], references: [id])
+
+  apiKeys   ApiKey[]
+  positions Position[]
+  trades    Trade[]
+}
+
+model House {
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  treasuryMicros BigInt @default(0)
+}
+
+model ApiKey {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  // Either agent OR user owns this key (exactly one must be set)
+  agentId String?
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId  String?
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  keyHash String @unique
+
+  @@index([agentId])
+  @@index([userId])
+}
+
+model Market {
+  id          String        @id @default(uuid())
+  createdAt   DateTime      @default(now())
+  title       String
+  description String?
+  closesAt    DateTime?
+
+  status  MarketStatus  @default(OPEN)
+  outcome MarketOutcome @default(UNRESOLVED)
+
+  // External reference for synced markets (e.g., Polymarket)
+  externalId  String?       @unique
+  category    String?
+  
+  // Traceability for forwarded markets (Slide 3)
+  sourceSlug  String?       // Original Polymarket slug
+  forwardedAt DateTime?     // When market was forwarded to our platform
+
+  pool      MarketPool?
+  positions Position[]
+  trades    Trade[]
+}
+
+model MarketPool {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  marketId String @unique
+  market   Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  // All amounts stored as micros (1 Coin = 1_000_000 micros) to avoid floats.
+  // Note: exact FPMM invariants and pricing are implemented in code; schema stores pool state.
+  collateralMicros BigInt
+  yesSharesMicros  BigInt
+  noSharesMicros   BigInt
+
+  feeBps Int @default(100) // 1% = 100 bps
+}
+
+model Position {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Either agent OR user owns this position (exactly one must be set)
+  agentId  String?
+  agent    Agent?  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketId String
+  market   Market  @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  yesSharesMicros BigInt @default(0)
+  noSharesMicros  BigInt @default(0)
+
+  @@unique([agentId, marketId])
+  @@unique([userId, marketId])
+  @@index([marketId])
+  @@index([userId])
+}
+
+model Trade {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  // Either agent OR user made this trade (exactly one must be set)
+  agentId  String?
+  agent    Agent?  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketId String
+  market   Market  @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  side TradeSide
+
+  // Collateral spent by agent/user, plus fee charged (both in micros).
+  collateralInMicros BigInt
+  feeMicros          BigInt
+
+  // Shares received (in micros of shares).
+  sharesOutMicros BigInt
+
+  // Pool state after trade (optional but useful for audit/debug).
+  poolCollateralMicros BigInt
+  poolYesSharesMicros  BigInt
+  poolNoSharesMicros   BigInt
+
+  @@index([agentId])
+  @@index([userId])
+  @@index([marketId])
+}
+
+model Payment {
+  id                String          @id @default(uuid())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  direction         PaymentDirection
+  status            PaymentStatus   @default(PENDING)
+
+  // On-chain metadata (FE-submitted in demo mode)
+  txHash            String?         @unique
+  walletAddress     String          // Normalized lowercase
+
+  // Amounts (integer-safe)
+  monAmountWei      BigInt          // MON in wei (18 decimals)
+  coinAmountMicros  BigInt          // Coin in micros (6 decimals)
+
+  // Idempotency
+  requestId         String          @unique  // UUID
+
+  // Status timestamps
+  confirmedAt       DateTime?
+  failedAt          DateTime?
+  sentAt            DateTime?       // For withdraw: when payout tx sent
+
+  errorMessage      String?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
